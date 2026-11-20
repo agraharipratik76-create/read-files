@@ -5450,6 +5450,9 @@ function pvKill(fade){
   try{ const t=SFX.ac.currentTime; c.g.gain.cancelScheduledValues(t); c.g.gain.setValueAtTime(c.g.gain.value,t); c.g.gain.linearRampToValueAtTime(0,t+fade); c.src.stop(t+fade+0.02); }catch(e){}
   musDuck();
 }
+// these students also speak once per mission / side quest they are part of, even if their walk-up line already played
+const PV_MX=new Set(['spandan','uttam','sricharan','rahul-bodkhe']);
+function pvMxDue(n){ if(!PV_MX.has(n.pv)) return null; const c=n.mxRole&&MX.cur?MX.cur:(ACT.cur&&ACT.cur.targets&&ACT.cur.targets.includes(n)?ACT.cur:null); return c&&n.pvMxFor!==c?c:null; }
 function pvStep(){ try{ pvStep_(); }catch(e){ PV.cur=null; } }      // audio must never stop the game loop
 function pvStep_(){
   if(!SFX.ac||!PV.npcs.length) return;
@@ -5462,8 +5465,9 @@ function pvStep_(){
   let best=null, bd=1e9;
   for(const n of PV.npcs){ const d=Math.hypot(n.x-S.px,n.y-S.py);
     if(!n.pvArmed&&d>PV.REARM&&now>n.pvCool) n.pvArmed=true;                     // left the area and came back later: armed again
-    if(n.pvArmed&&n.ko<=0&&!n.sulk&&d<PV.START&&d<bd&&PV.buf[n.pv]){ best=n; bd=d; } }
-  if(best&&(!PV.cur||(PV.cur.n!==best&&bd<PV.cur.d-40))){ if(PV.cur) pvKill(0.2); pvPlay(best,bd); }   // nearest wins
+    const mx=pvMxDue(n);
+    if((n.pvArmed||mx)&&n.ko<=0&&!n.sulk&&d<PV.START&&d<bd&&PV.buf[n.pv]){ best=n; bd=d; } }
+  if(best&&(!PV.cur||(PV.cur.n!==best&&bd<PV.cur.d-40))){ if(PV.cur) pvKill(0.2); const mx=pvMxDue(best); if(mx) best.pvMxFor=mx; pvPlay(best,bd); }   // nearest wins
 }
 function musTarget(){ return OPT.vMusic*(VOX.speaking?0.3:PV.cur?0.6:1)*(window.RADIO&&RADIO.on&&RADIO.playing?0.15:1); }   // duck only while the radio is audible
 function musDuck(){ mixGain(SFX.mus&&SFX.mus.gain,musTarget(),VOX.speaking||PV.cur?0.08:0.35); }
