@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>GATE-6 — Campus Rush</title>
+<title>Bawalverse — Bawal hai. Karna padega.</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -224,13 +224,14 @@
   #start.off{opacity:0;pointer-events:none}
   .tkick{font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(--gold);font-weight:800;text-shadow:0 2px 0 rgba(0,0,0,.35);
          animation:fadeup .7s .1s both}
-  .title{font-size:clamp(68px,17vw,168px);font-weight:900;letter-spacing:-.045em;line-height:.88;margin:10px 0 6px;color:var(--cream);
+  .title{font-size:clamp(40px,10.5vw,150px);font-weight:900;letter-spacing:-.045em;line-height:.88;margin:10px 0 6px;color:var(--cream);
          display:flex;justify-content:center;white-space:nowrap}
   .title span{display:inline-block;text-shadow:0 .055em 0 #c9815e,0 .11em 0 #9a5d42,0 .2em .12em rgba(0,0,0,.35);
               animation:drop .7s cubic-bezier(.25,1.6,.45,1) both, bob 4.2s ease-in-out infinite}
   .title span.d{color:var(--gold)}
   @keyframes drop{from{transform:translateY(-.6em) rotate(-8deg);opacity:0}to{transform:none;opacity:1}}
   @keyframes bob{0%,100%{translate:0 0}50%{translate:0 -.035em}}
+  .ttag{font-size:clamp(15px,2.4vw,22px);font-weight:800;font-style:italic;color:var(--gold);margin:4px 0 2px;text-shadow:0 2px 0 rgba(0,0,0,.35);animation:fadeup .7s .45s both}
   .tsub{max-width:440px;font-size:15px;line-height:1.5;opacity:.9;margin:8px 0 22px;text-shadow:0 1px 8px rgba(0,0,0,.5);animation:fadeup .7s .55s both}
   .pname{display:flex;flex-direction:column;align-items:center;gap:7px;margin:-6px 0 18px;cursor:default;animation:fadeup .6s .7s both}
   .pname span{font-size:10.5px;letter-spacing:2.4px;text-transform:uppercase;color:var(--gold);font-weight:800;text-shadow:0 2px 0 rgba(0,0,0,.35)}
@@ -749,6 +750,14 @@
   #news img{max-width:min(620px,100%);max-height:calc(100vh - 110px);box-shadow:0 20px 60px rgba(0,0,0,.6);border-radius:2px}
   #news .nbtns{display:flex;gap:10px} #news .nbtns button+button{background:none;color:#f1ead8;border:1px solid rgba(241,234,216,.4)}
   @media (pointer:coarse){ .newsrow button,#news .nbtns button{min-height:44px} }
+  @media (max-height:520px){
+    .title{font-size:clamp(34px,12vh,80px);margin:4px 0 2px}
+    .tkick{font-size:9px} .ttag{font-size:14px;margin:2px 0 0}
+    .tsub{font-size:12px;line-height:1.35;margin:4px 0 8px;max-width:560px}
+    .tline,.selhint{display:none}
+    .pname{margin:0 0 8px;gap:4px} .startbtn{min-height:46px}
+    .selcard canvas{width:96px;height:86px}
+  }
   /* landscape phones: keep the side buttons clear of the action buttons */
   @media (pointer:coarse) and (orientation:landscape) and (max-height:520px){
     #mapwrap{display:grid;grid-template-columns:repeat(2,44px);justify-content:end;justify-items:end;gap:6px}
@@ -805,7 +814,7 @@
   <div id="tut" role="dialog" aria-label="Tutorial"></div>
   <div id="toast"></div>
 </div>
-<div id="badge">Gate-6 &middot; Phase 2</div>
+<div id="badge">Bawalverse &middot; Phase 2</div>
 <div id="select" role="dialog" aria-label="Choose your character">
   <div class="selhead"><div class="kick" id="selkick">New game</div><h1>Who are you?</h1></div>
   <div id="selrow" role="listbox"></div>
@@ -866,7 +875,7 @@
 </div>
 <div id="photo">
   <div class="frame"><i></i><i></i><i></i><i></i>
-    <div class="pcap"><div class="t">GATE<em>-</em>6</div><div class="m" id="pmeta">Campus Rush</div></div>
+    <div class="pcap"><div class="t">BAWAL<em>VERSE</em></div><div class="m" id="pmeta">Bawal hai. Karna padega.</div></div>
     <div class="pstat" id="pstat"></div>
   </div>
   <div class="ptip" id="ptip">Photo mode &middot; <span class="desk-only">WASD or drag to frame &middot; P to exit</span><span class="touch-only">drag to frame &middot; tap to exit</span></div>
@@ -929,8 +938,9 @@
   </div></div>
 <input type="file" id="trackfile" accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.oga,.flac,.opus" multiple hidden>
 <div id="start">
-  <div class="tkick">Campus Rush &middot; day after day</div>
-  <div class="title" aria-label="GATE-6"><span style="animation-delay:.05s,0s">G</span><span style="animation-delay:.12s,.2s">A</span><span style="animation-delay:.19s,.4s">T</span><span style="animation-delay:.26s,.6s">E</span><span class="d" style="animation-delay:.33s,.8s">-</span><span style="animation-delay:.42s,1s">6</span></div>
+  <div class="tkick">Bawalverse &middot; day after day</div>
+  <div class="title" aria-label="Bawalverse"><span style="animation-delay:0.05s,0.0s">B</span><span style="animation-delay:0.12s,0.2s">A</span><span style="animation-delay:0.19s,0.4s">W</span><span style="animation-delay:0.26s,0.6s">A</span><span style="animation-delay:0.33s,0.8s">L</span><span class="d" style="animation-delay:0.40s,1.0s">V</span><span class="d" style="animation-delay:0.47s,1.2s">E</span><span class="d" style="animation-delay:0.54s,1.4s">R</span><span class="d" style="animation-delay:0.61s,1.6s">S</span><span class="d" style="animation-delay:0.68s,1.8s">E</span></div>
+  <div class="ttag">Bawal hai. Karna padega.</div>
   <div class="tsub">08:00 to 23:00, then the next day, and the next. Places you have to be, a campus full of people who are extremely slappable, and a security team that would rather you didn't.</div>
   <label class="pname"><span>What's your name?</span>
     <input id="pname" maxlength="18" placeholder="Your name" autocomplete="off" spellcheck="false" enterkeyhint="go"></label>
@@ -2659,7 +2669,7 @@ addEventListener('keydown',e=>{
   if(k===' '&&!e.repeat) chargeStart();
   if(k==='m'){ openMap(); return; }
   if(k==='v'&&!RACE.on&&!e.repeat){ cycleCam(); return; }
-  if(k==='f'){ showFps=!showFps; if(!showFps)$('badge').textContent='Gate-6 · Phase 2'; }
+  if(k==='f'){ showFps=!showFps; if(!showFps)$('badge').textContent='Bawalverse · Phase 2'; }
 });
 addEventListener('keyup',e=>{ const k=e.key.toLowerCase(); keys[k]=false;
   if(k===' ') chargeRelease(); });
