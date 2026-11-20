@@ -836,7 +836,7 @@
 <div id="hud">
   <div id="hudtl">
     <div class="panel" id="timep"><div class="sun"></div><div><div id="clock">08:00</div><div id="clocksub">Hackathon Day</div></div></div>
-    <div class="panel" id="moneyp" title="Wallet · B opens the store"><i class="coin">&#8377;</i><b id="mny">&#8377;1,200</b><span id="mnyd"></span><div id="rentd"></div></div>
+    <div class="panel" id="moneyp" title="Wallet · B opens the store"><i class="coin">&#8377;</i><b id="mny">&#8377;6,000</b><span id="mnyd"></span><div id="rentd"></div></div>
     <div class="panel" id="vitals">
       <div class="vit en" title="Energy"><svg class="ico" viewBox="0 0 16 16"><path d="M9.6 1 3 9.2h4.2L6.3 15l6.6-8.4H8.7z" fill="#5fc9f3"/></svg><div class="vbar"><i id="bEn" style="width:100%;background:#5fc9f3"></i></div><b id="vEn">100</b></div>
       <div class="vit bu" title="Build"><svg class="ico" viewBox="0 0 16 16"><path d="M5.6 3.8 1.8 8l3.8 4.2M10.4 3.8 14.2 8l-3.8 4.2" stroke="#8ad15f" stroke-width="2.1" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="vbar"><i id="bBu" style="width:0%;background:#8ad15f"></i></div><b id="vBu">0%</b></div>
@@ -1028,7 +1028,7 @@ window.VOICE_DATA={"adit": "SUQzBAAAAAACDVRYWFgAAAASAAADbWFqb3JfYnJhbmQATTRBIABU
    =========================================================== */
 
 const WORLD = { w: 2900, h: 3000, x0: -900 };   // x0: the main road strip extends the world west (Task K)
-const MIN_PER_SEC = 3;
+const MIN_PER_SEC = 1.5;   // slower clock: a full day lasts about ten real minutes
 const DAY_START = 480, DAY_END = 1380;      // 08:00 -> 23:00
 const SP_WALK = 150, SP_RUN = 250, SP_BIKE = 330, SP_CAR = 460;
 
@@ -1342,7 +1342,7 @@ function archReact(n){
 
 /* ---------- STATE ---------- */
 const S = {
-  running:false, playerName:'Player', t:DAY_START, en:100, bu:0, rs:1200, ko:0, stars:0,
+  running:false, playerName:'Player', t:DAY_START, en:100, bu:0, rs:6000, ko:0, stars:0,
   evadeT:0, seen:false, wasSeen:false, gateSpawned:false, lkx:0, lky:0, lkvx:0, lkvy:0, lkId:0, lkT:0, bustT:0, respT:0, wantL:0,
   mi:0, onTime:0, busted:0, over:false, chaiCd:0,
   px:640, py:1500, vx:0, vy:0, face:0, walkT:0,
@@ -5724,7 +5724,7 @@ const CHARS={
     sp:1,en:1,bu:1,heat:1.3,slap:1,hair:'#6b2f7e',
     looks:[{id:'vg0',name:'Pink hoodie',rs:0,shirt:'#e04f9f',hi:'#f07cbb',arm:'#c9438b'},{id:'vg1',name:'Neon green',rs:700,shirt:'#64c43c',hi:'#a5f07c',arm:'#58ad35'},
            {id:'vg2',name:'Holo jacket',rs:1500,shirt:'#45b8a9',hi:'#a5f0e6',arm:'#3a9f92'}]},
-  fresher:{name:'The Fresher',short:'Fresher',desc:'Is this the line for registration?',special:'Energy +40%. Guards go easy on you. Starts with only ₹300.',
+  fresher:{name:'The Fresher',short:'Fresher',desc:'Is this the line for registration?',special:'Energy +40%. Guards go easy on you.',
     sp:1,en:1.4,bu:1,heat:1,slap:1,easy:true,hair:'#2a1f17',
     looks:[{id:'fr0',name:'Orientation tee',rs:0,shirt:'#2d4a8a',hi:'#45629f',arm:'#27417a'},{id:'fr1',name:'Freshers’ yellow',rs:600,shirt:'#f0c53c',hi:'#f7d970',arm:'#dcb230'},
            {id:'fr2',name:'Hostel hoodie',rs:1200,shirt:'#7d838c',hi:'#9aa0a8',arm:'#70767e'}]},
@@ -5760,7 +5760,7 @@ const EXTRA_POSTS=[[900,1100],[1950,760],[2400,1950],[1150,2150],[1850,2650],[76
 const EXTRA_NAMES=['Rakesh','Vinod','Sunil','Ashok','Mahesh','Pappu bhai'];
 function vehOwnAll(){ SHOP_VEH.forEach(it=>ECO.own[it.id]=true); }
 const ECO={day:1,char:'topper',fans:0,crowdT:0,own:{},upg:{},cos:{},outfit:{},rep:0,items:[],loot:[],rentPaid:false,home:'',locker:0,bf:0,pgq:{},cp:null,ds:null,hist:[],earnedAll:0,
-  shown:1200,lastRs:1200,vcd:20,saveInfo:null,next:null,hudKey:'',deltaT:0};
+  shown:6000,lastRs:6000,vcd:20,saveInfo:null,next:null,hudKey:'',deltaT:0};
 let DIFF_BASE=null;     // captured on first use (the wanted-level tables are declared further down)
 const MISSIONS_D1=MISSIONS.map(m=>JSON.parse(JSON.stringify(m)));
 MISSIONS_D1.forEach(m=>{ m.r.rs=(m.r.rs||0)+200; m.rl.rs=(m.rl.rs||0)+60; });      // Day 1 work pays too
@@ -6183,7 +6183,7 @@ function dayEnd(slept){
   if(MX.cur) mxFail('The day ran out.');
   if(OV.kind) ovClose(); mateMenu(false);
   S.over=true; S.running=false;
-  if(S.veh>=0){ VEH[S.veh].sp=0; S.veh=-1; }
+  if(slept&&S.veh>=0){ VEH[S.veh].sp=0; S.veh=-1; }
   if(UI.shop) closeShop();
   const ds=ECO.ds||{earned:0,spent:0,content:0,realT:0,bestCombo:0,ko0:0,b0:0,d0:0};
   if(!ECO.home){ pgSetHome('pg_ss'); ECO.autoHome=true; }          // nobody picked a PG: SS PG takes you in
@@ -6205,7 +6205,11 @@ function dayEnd(slept){
   ECO.hist.push({day:ECO.day,place,earned,ko:S.ko-ds.ko0,done,onTime:S.onTime});
   const nextN=Math.min(10,6+Math.ceil((ECO.day+1)/2)), moreG=Math.min(EXTRA_POSTS.length,ECO.day)>GUARDS.filter(g=>g.extra).length;
   newsPrep({day:ECO.day,bust,done,n:MX.plan.length,rent,ko:S.ko-ds.ko0,earned,spent:Math.round(ds.spent+(rent==='paid'&&!slept?pgRent():0)),bu:Math.round(S.bu),stars:mxStars,place,perfect});
-  sfx(place==='Winner'||place==='Runner-up'?'cheer':'ok'); musicDuck(true);
+  sfx(place==='Winner'||place==='Runner-up'?'cheer':'ok');
+  if(!slept){   // clock ran out: no stop screen, the next day starts right where you are
+    toast('Day '+ECO.day+' wrapped: '+place+', '+done+'/'+MX.plan.length+' missions, '+fmtRs(earned)+' earned'+(prize?' (prize '+fmtRs(prize)+')':'')+'. Wallet '+fmtRs(S.rs)+'.','evt');
+    newDay(true); return; }
+  musicDuck(true);
   showCard(`
    <div class="kick">${slept?hhmm(S.t)+' &middot; lights out':S.t>=1440?'04:00 &middot; the all-nighter is over':'23:00 &middot; the day is over'} &middot; ${PNh()} &middot; ${CH().name}</div>
    <h1>Day ${ECO.day} done</h1>
@@ -6233,21 +6237,21 @@ function dayEnd(slept){
    <button class="btn">Start Day ${ECO.day+1}</button>`, ()=>newDay());
   newsWire();
 }
-function newDay(){
-  $('veil').classList.remove('on');
+function newDay(stay){
+  if(!stay) $('veil').classList.remove('on');
   const nx=ECO.next||{en:70,slept:false};
   ECO.day++; S.over=false; S.t=DAY_START; S.mi=0; MRES.length=0; S.onTime=0; S.bu=0; S.combo=0; S.comboT=0; S.chaiCd=0; S.wob=0;
-  S.en=Math.min(enCap(),nx.en); clearWanted();
+  S.en=stay?Math.max(S.en,Math.min(enCap(),nx.en)):Math.min(enCap(),nx.en); clearWanted();
   if(nx.slept&&ECO.home==='pg_monk') S.bu=5;                                  // Monk Mansion: lights out at 22:00, you wake up focused
   if(ECO.home==='pg_uni'&&ECO.locker>0){ const it=Math.round(ECO.locker*0.03); ECO.locker+=it; if(it) setTimeout(()=>toast('Uniworld locker interest: +'+fmtRs(it)),1800); }
   ECO.autoHome=false;
-  const p=nx.slept?[PGH.x,PGH.y+70]:[640,1500]; S.px=p[0]; S.py=p[1]; S.vx=S.vy=0; cam.init=false;
+  const p=stay?[S.px,S.py]:nx.slept?[PGH.x,PGH.y+70]:[640,1500]; if(!stay){ S.px=p[0]; S.py=p[1]; S.vx=S.vy=0; cam.init=false; }
   ECO.rentPaid=false; ECO.next=null; ECO.vcd=20;
   MISSIONS.length=0; if(MX.mate) mateRelease(); mxPlanDay(ECO.day); applyDifficulty(ECO.day); spawnLoot(ECO.day); ecoNewDayStats();
   hudC.mi=-1; ECO.hudKey='';
   saveGame('day',p);
-  S.running=true; musicDuck(false); sfx('star');
-  toast('Day '+ECO.day+'. '+MISSIONS.length+' objectives. '+(nx.rent==='missed'?'You slept on a bench. 40 energy.':nx.slept?'You slept properly. Full energy.':'Beanbag sleep. 70 energy.'),'evt');
+  S.running=!(stay&&$('veil').classList.contains('on')); musicDuck(false); sfx('star');   // a mission-failed card may still be open
+  toast('Day '+ECO.day+'. '+MISSIONS.length+' objectives. '+(stay?(nx.rent==='missed'?'Rent missed: running on fumes.':'Straight into the next day.'):nx.rent==='missed'?'You slept on a bench. 40 energy.':nx.slept?'You slept properly. Full energy.':'Beanbag sleep. 70 energy.'),'evt');
 }
 
 /* ---------- save / load (try/catch everywhere: storage can throw or come back empty) ---------- */
@@ -6301,7 +6305,7 @@ function ecoRespawn(){ const c=ECO.cp||[600,2835], f=solid(c[0],c[1],PR)?nearest
 // called from startGame: Continue loads the save, New game starts Day 1 with the picked character
 function ecoBoot(){
   if(UI.useSave){ const d=loadSave(); if(d){ applySave(d); toast('Welcome back. Day '+ECO.day+' · '+hhmm(S.t)+' · '+fmtRs(S.rs)); ECO.saveInfo=d; return true; } }
-  ECO.char=CHARS[UI.pickChar]?UI.pickChar:'topper'; ECO.day=1; S.rs=ECO.char==='fresher'?300:1200; S.en=enCap(); MISSIONS.length=0; MX.prog={best:{},tier:1,streak:0,days:0,board:[]}; mxPlanDay(1); pgSetHome(''); ECO.locker=0; ECO.bf=0; ECO.pgq={}; applyDifficulty(1); spawnLoot(1);
+  ECO.char=CHARS[UI.pickChar]?UI.pickChar:'topper'; ECO.day=1; S.rs=6000;   // every new player starts with ₹6,000 S.en=enCap(); MISSIONS.length=0; MX.prog={best:{},tier:1,streak:0,days:0,board:[]}; mxPlanDay(1); pgSetHome(''); ECO.locker=0; ECO.bf=0; ECO.pgq={}; applyDifficulty(1); spawnLoot(1);
   S.t=DAY_START; ecoNewDayStats(); ECO.lastRs=Math.round(S.rs); ECO.shown=S.rs; ECO.cp=[S.px,S.py];
   setTimeout(()=>saveGame('day',[S.px,S.py],true),50);
   return false;

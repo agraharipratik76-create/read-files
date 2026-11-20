@@ -15,3 +15,4 @@ Backlog: P1 gameplay bug fixes/perf/mobile on request; P2 new features (leaderbo
 - 2026-06: Follow-up: giver scale reset, music restored during next-track load, Yulu gate rings face player + raised, portrait dashboard sits below left HUD. Open: iteration_6 report.
 - 2026-06: Added walk-up voice clips (VOICE_DATA + VOICE_CLIPS): spandan->Spandan Ananthula, uttam->Uttam Yamagowni, sricharan->Sricharan Vollala (user confirmed 'sai Charan'), rahul-bodkhe->Rahul Laxmikant Bodkhe.
 - 2026-06: Mission voice lines: PV_MX (spandan, uttam, sricharan, rahul-bodkhe) speak once per mission/side quest they're part of (mxRole or ACT.cur.targets), on top of walk-up line.
+- 2026-06: New players start with ₹6,000 (all characters). MIN_PER_SEC 3->1.5 (day ≈10.7 real min). Clock running out at 23:00/04:00 rolls straight into next day in place (toast summary, no end card, rent/prize/streak still applied); sleeping at PG keeps the full summary card.
