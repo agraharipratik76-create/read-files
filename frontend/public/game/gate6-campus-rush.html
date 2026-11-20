@@ -774,6 +774,14 @@
   #stickknob{background:radial-gradient(circle at 40% 35%,rgba(255,255,255,.65),rgba(255,255,255,.25) 60%,rgba(255,255,255,.15));box-shadow:0 4px 10px rgba(0,0,0,.4)}
   #mini{box-shadow:0 12px 28px -8px rgba(0,0,0,.6),inset 0 0 0 1px rgba(255,255,255,.06)}
   #veil{background:radial-gradient(ellipse at center,rgba(12,16,10,.72),rgba(4,6,3,.9))}
+  #fpp{position:fixed;inset:0;width:100%;height:100%;display:none;touch-action:none;pointer-events:none}
+  #btnRadio{position:fixed;z-index:31;left:calc(14px + var(--sal));bottom:calc(34px + var(--sab));display:none;align-items:center;gap:7px;padding:8px 14px;min-height:38px;border-radius:999px;
+    font:800 12px/1 Inter,system-ui,sans-serif;color:#fff3dc;cursor:pointer;background:linear-gradient(180deg,rgba(44,50,42,.9),rgba(15,19,14,.94));border:1px solid rgba(255,255,255,.12);border-top-color:rgba(255,255,255,.24);
+    box-shadow:0 10px 24px -8px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08);transition:transform .15s,background-color .15s}
+  #btnRadio.on{display:flex} #btnRadio:active{transform:scale(.95)}
+  #btnRadio kbd{font:800 10px/1 Inter,system-ui;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.12);color:#f2ba4a}
+  @media (pointer:coarse){ #btnRadio{left:50%;transform:translateX(-50%);bottom:auto;top:calc(140px + var(--sat));min-height:44px} #btnRadio:active{transform:translateX(-50%) scale(.95)} #btnRadio kbd{display:none} }
+  @media (pointer:coarse) and (orientation:landscape) and (max-height:520px){ #btnRadio{top:auto;bottom:calc(104px + var(--sab))} }
   @media (max-height:520px){
     .title{font-size:clamp(34px,12vh,80px);margin:4px 0 2px}
     .tkick{font-size:9px} .ttag{font-size:14px;margin:2px 0 0}
@@ -839,6 +847,7 @@
   <div id="toast"></div>
 </div>
 <div id="badge">Bawalverse &middot; Phase 2</div>
+<button id="btnRadio" type="button" data-testid="radio-next-song" aria-label="Next song on the car radio">&#128251; Next song <kbd>R</kbd></button>
 <div id="select" role="dialog" aria-label="Choose your character">
   <div class="selhead"><div class="kick" id="selkick">New game</div><h1>Who are you?</h1></div>
   <div id="selrow" role="listbox"></div>
@@ -1314,9 +1323,9 @@ const S = {
 const cam={x:0,y:0,init:false};
 // camera modes: 0 Overview (original camera), 1 Close (2.2x, north-up), 2 Follow (2.6x, facing direction is up).
 // Follow rotates the world around the view centre; people, labels and text are counter-rotated so they stay upright.
-const CAM_MODES=[{name:'Overview',z:1},{name:'Close',z:2.2},{name:'Follow',z:2.6}];
+const CAM_MODES=[{name:'Overview',z:1},{name:'Close',z:2.2},{name:'Follow',z:2.6},{name:'Eye view',z:2.6}];
 const CAM={mode:0,z:1,rot:0,on:false,sv:null,D:0};
-try{ const m=parseInt(sessionStorage.getItem('gate6.cam'),10); if(m>=0&&m<3) CAM.mode=m; }catch(e){}   // remembered for the session
+try{ const m=parseInt(sessionStorage.getItem('gate6.cam'),10); if(m>=0&&m<4) CAM.mode=m; }catch(e){}   // remembered for the session
 const keys={}; const parts=[]; const toasts=[]; const pops=[];
 
 const cvs=document.getElementById('game'), ctx=cvs.getContext('2d');
@@ -2672,6 +2681,7 @@ function endCard(){
 }
 
 /* ---------- INPUT ---------- */
+$('btnRadio').addEventListener('click',e=>{ e.preventDefault(); radioSkip(); });
 addEventListener('keydown',e=>{
   if(e.target&&e.target.id==='bmq'){ if(e.key==='Escape'){ e.preventDefault(); closeMap(); } return; }   // typing a search
   if(e.target&&e.target.id==='pname'){ if(e.key==='Enter'){ e.preventDefault(); startGame(); } return; }   // typing a name
@@ -2713,6 +2723,7 @@ addEventListener('keydown',e=>{
   if(k==='h') horn();
   if(k===' '&&!e.repeat) chargeStart();
   if(k==='m'){ openMap(); return; }
+  if(k==='r'&&!e.repeat&&radioSkip()) return;
   if(k==='v'&&!RACE.on&&!e.repeat){ cycleCam(); return; }
   if(k==='f'){ showFps=!showFps; if(!showFps)$('badge').textContent='Bawalverse · Phase 2'; }
 });
@@ -6611,7 +6622,8 @@ function mxPickNPCs(n,from,minD,spread){
   return out;
 }
 function mxHoldNPC(n,role){ n.mxRole=role; n.hold=true; n.hx=n.x; n.hy=n.y; n.tx=n.x; n.ty=n.y; }
-function mxCrowdIn(o,m){ return o.ko<=0&&Math.hypot(o.x-m.cx,o.y-m.cy)<m.r; }   // anyone from the crowd standing inside the drawn ring
+function mxCrowdIn(o,m){ if(o.ko>0||(o.mxRole&&o.mxRole!=='crowd')||(o.hold&&o.mxRole!=='crowd')) return false;   // standing, not busy in another mission
+  const dx=(o.x-m.cx)/m.r, dy=(o.y-m.cy)/(m.r*0.45); return dx*dx+dy*dy<1; }   // same oval mxRing draws
 function mxFreeNPC(n){ if(!n) return; n.mxRole=null; n.hold=false; n.tx=n.x; n.ty=n.y; }
 function mxNear(p,r){ return Math.hypot(p[0]-S.px,p[1]-S.py)<(r||60); }
 
@@ -6658,23 +6670,23 @@ const MXF={
   /* 9. CROWD CONTROL */
   crowd:{
     start(m){ const c=mxFreeNear(598,1395,30); m.cx=c[0]; m.cy=c[1]; m.r=105; m.kol=S.ko; m.limit=90;
-      const n=Math.min(26,12+2*ECO.day); m.crowd=mxPickNPCs(n,[m.cx,m.cy],0,0); m.crowd.forEach(o=>{ o.asked=false; o.out=false; });
-      m.crowd.forEach((o,i)=>{ const a=Math.random()*7, r=Math.random()*80, f=mxFreeNear(m.cx+Math.cos(a)*r,m.cy+Math.sin(a)*r*0.8,18); o.x=f[0]; o.y=f[1]; o.panic=0; mxHoldNPC(o,'crowd'); });
+      const n=Math.min(26,12+2*ECO.day); m.crowd=mxPickNPCs(n,[m.cx,m.cy],0,0);
+      m.crowd.forEach((o,i)=>{ const a=Math.random()*7, r=Math.random()*80, f=mxFreeNear(m.cx+Math.cos(a)*r,m.cy+Math.sin(a)*r*0.38,18); o.x=f[0]; o.y=f[1]; o.panic=0; mxHoldNPC(o,'crowd'); });
       if(m.crowd[0]) m.crowd[0].vlog=true; },
     update(dt,m){
-      for(const o of m.crowd){ if(o.asked&&!o.out&&Math.hypot(o.x-m.cx,o.y-m.cy)>=m.r+12) o.out=true; if(o.mxRole!=='crowd') continue; if(o.ko>0||o.panic>0){ mxFreeNPC(o); o.vlog=false; o.asked=true; } }
+      for(const o of m.crowd){ if(o.mxRole!=='crowd') continue; if(o.ko>0||o.panic>0){ mxFreeNPC(o); o.vlog=false; } }
       if(S.ko>m.kol){ const k=S.ko-m.kol; m.kol=S.ko; if(Math.hypot(S.px-m.cx,S.py-m.cy)<m.r+160) crime(0.32*k); }   // slapping is loud
-      const left=m.crowd.filter(o=>mxCrowdIn(o,m)).length;   // asked people count until they have actually left
+      const left=NPCS.filter(o=>mxCrowdIn(o,m)).length;   // anyone standing inside the ring, bystanders included
       if(!left) mxFinish(m.t<=m.par&&S.stars<1.5?3:m.t<=m.par*1.6?2:1,'Path clear in '+mmss(m.t)+(S.stars>=1?', and security heard every second of it.':'. Quietly, too.')); },
-    interact(m){ let best=null, bd=62; for(const o of m.crowd){ if(o.mxRole!=='crowd'||o.ko>0) continue; const d=Math.hypot(o.x-S.px,o.y-S.py); if(d<bd){ bd=d; best=o; } }
-      if(!best) return false; mxFreeNPC(best); best.vlog=false; best.asked=true; const a=Math.atan2(best.y-m.cy,best.x-m.cx); best.tx=best.x+Math.cos(a)*320; best.ty=best.y+Math.sin(a)*320;
+    interact(m){ let best=null, bd=62; for(const o of NPCS){ if(!mxCrowdIn(o,m)) continue; const d=Math.hypot(o.x-S.px,o.y-S.py); if(d<bd){ bd=d; best=o; } }
+      if(!best) return false; if(best.mxRole==='crowd') mxFreeNPC(best); best.vlog=false; best.asked=true; const a=Math.atan2(best.y-m.cy,best.x-m.cx); best.tx=best.x+Math.cos(a)*320; best.ty=best.y+Math.sin(a)*320;
       toast('<b style="color:#f2ba4a">'+escHtml(callName(best))+'</b>: “Okay, okay, I’m going.”'); sfx('voice'); return true; },
     end(m){ m.crowd.forEach(o=>{ o.vlog=false; if(o.mxRole==='crowd') mxFreeNPC(o); }); },
     draw(m){ const s=SCALE, t=performance.now()/1000; if(inViewW(m.cx,m.cy,m.r+40)){ ctx.setLineDash([10*s,7*s]); ctx.lineDashOffset=-t*20*s; mxRing(m.cx,m.cy,m.r*1.0,'rgba(232,80,63,.85)'); ctx.setLineDash([]); }
       const v=m.crowd.find(o=>o.vlog&&o.mxRole==='crowd'); if(v&&inViewW(v.x,v.y,40)){ const x=W2SX(v.x)+16*s, y=W2SY(v.y)-30*s; ctx.strokeStyle='#fffaf0'; ctx.lineWidth=2.2*s; ctx.beginPath(); ctx.arc(x,y,6*s,0,7); ctx.stroke(); } },
-    obj(m){ return 'Clear the main path: '+m.crowd.filter(o=>mxCrowdIn(o,m)).length+' people still in the way'; },
+    obj(m){ return 'Clear the main path: '+NPCS.filter(o=>mxCrowdIn(o,m)).length+' people still in the way'; },
     meta(m){ return 'Slaps add heat · a horn scatters them · E asks nicely'; },
-    hint(m){ return m.crowd.some(o=>o.mxRole==='crowd'&&o.ko<=0&&Math.hypot(o.x-S.px,o.y-S.py)<62)?'E — ask them to move · SPACE — slap (loud)':''; },
+    hint(m){ return NPCS.some(o=>mxCrowdIn(o,m)&&Math.hypot(o.x-S.px,o.y-S.py)<62)?'E — ask them to move · SPACE — slap (loud)':''; },
     points(m){ return [[m.cx,m.cy,'#e04f9f']]; },
   },
   /* 11. THE RECOVERY */
@@ -7061,6 +7073,108 @@ function clDraw(){
   ctx.globalCompositeOperation='lighter'; ctx.fillStyle='rgba(255,210,140,.05)'; ctx.beginPath(); ctx.moveTo(X(S.px),Y(S.py)); ctx.arc(X(S.px),Y(S.py),L*2,a-0.52,a+0.52); ctx.closePath(); ctx.fill(); ctx.globalCompositeOperation='source-over';
 }
 
+
+/* ---------- EYE VIEW: first-person three.js view built from the same campus data (V cycles to it) ---------- */
+const FPP={st:0,fr:0};
+function fppOn(){ return CAM.mode===3&&S.scene==='campus'&&!RACE.on&&!UI.map; }
+function fppLoad(){ if(FPP.st) return; FPP.st=1; const sc=document.createElement('script'); sc.src='assets/vendor/three.min.js';
+  sc.onload=()=>{ try{ fppBuild(); FPP.st=2; }catch(e){ console.error(e); FPP.st=-1; toast('Eye view could not start on this device.'); } };
+  sc.onerror=()=>{ FPP.st=-1; toast('Eye view could not load.'); }; document.head.appendChild(sc); }
+function fppWinTex(T,lit){ const c=document.createElement('canvas'); c.width=c.height=64; const g=c.getContext('2d');
+  if(lit){ g.fillStyle='#000'; g.fillRect(0,0,64,64); g.fillStyle='#fff'; g.fillRect(8,14,20,30); g.fillStyle='#8a8a8a'; g.fillRect(38,14,20,30); }   // night glow mask
+  else { g.fillStyle='#fff'; g.fillRect(0,0,64,64); g.fillStyle='rgba(0,0,0,.08)'; g.fillRect(0,60,64,4);
+  for(let i=0;i<2;i++){ const gr=g.createLinearGradient(0,14,0,44); gr.addColorStop(0,'#7f98b0'); gr.addColorStop(1,'#33475c'); g.fillStyle=gr; g.fillRect(8+i*30,14,20,30); g.fillStyle='rgba(255,255,255,.25)'; g.fillRect(8+i*30,14,20,4); } }
+  const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; t.colorSpace=T.SRGBColorSpace; return t; }
+function fppBuild(){
+  const T=THREE, cv=document.createElement('canvas'); cv.id='fpp'; $('game').after(cv); FPP.cv=cv;
+  const r=new T.WebGLRenderer({canvas:cv,antialias:!isTouch,powerPreference:'high-performance'}); r.setPixelRatio(Math.min(devicePixelRatio,isTouch?1:1.5)); r.outputColorSpace=T.SRGBColorSpace; FPP.r=r;
+  const sc=new T.Scene(); FPP.scene=sc; sc.fog=new T.Fog(0xcfd8d0,260,1600); sc.background=new T.Color(0xbcd6e8);
+  FPP.cam=new T.PerspectiveCamera(72,1,0.5,2600);
+  FPP.hemi=new T.HemisphereLight(0xfdf6e3,0x4a5a3a,1.15); sc.add(FPP.hemi);
+  FPP.sun=new T.DirectionalLight(0xfff0d0,1.25); FPP.sun.position.set(-600,900,-400); sc.add(FPP.sun);
+  FPP.head=new T.SpotLight(0xfff2d6,0,520,0.5,0.55,1.2); sc.add(FPP.head); sc.add(FPP.head.target);
+  const gw=WORLD.w-WORLD.x0, gh=WORLD.h, gs=isTouch?0.5:1, G=document.createElement('canvas'); G.width=Math.round(gw*gs); G.height=Math.round(gh*gs);   // the world canvas is freed after slicing: rebuild it from tiles
+  const gg=G.getContext('2d',{willReadFrequently:true}); tiles.forEach(t=>gg.drawImage(t.c,(t.x-WORLD.x0)*gs,t.y*gs,t.w*gs,t.h*gs));
+  const tex=new T.CanvasTexture(G); tex.colorSpace=T.SRGBColorSpace; tex.anisotropy=Math.min(8,r.capabilities.getMaxAnisotropy());
+  const gnd=new T.Mesh(new T.PlaneGeometry(gw,gh),new T.MeshLambertMaterial({map:tex}));
+  gnd.rotation.x=-Math.PI/2; gnd.position.set(WORLD.x0+gw/2,0,gh/2); sc.add(gnd);
+  const px=(x,y)=>{ const d=gg.getImageData(Math.max(0,Math.min(G.width-1,((x-WORLD.x0)*gs)|0)),Math.max(0,Math.min(G.height-1,(y*gs)|0)),1,1).data; return new T.Color(`rgb(${d[0]},${d[1]},${d[2]})`); };
+  const win=fppWinTex(T), winE=fppWinTex(T,true); FPP.winMats=[];
+  const wm=(col,wt)=>{ const e=winE.clone(); e.needsUpdate=true; e.repeat.copy(wt.repeat); const m=new T.MeshLambertMaterial({color:col,map:wt,emissiveMap:e,emissive:0x000000}); FPP.winMats.push(m); return m; };
+  for(const b of B){ const h0=bHeight(b); if(!h0&&!b.prop) continue; const H=b.prop?Math.min(26,Math.max(b.w,b.h)*0.8):h0*2.4;
+    const roof=px(b.s==='circ'?b.x:b.x+b.w*0.3,b.s==='circ'?b.y:b.y+b.h*0.3), wall=roof.clone().lerp(new T.Color(0xe8e0d0),0.35);
+    let m;
+    if(b.s==='circ'){ const wt=win.clone(); wt.needsUpdate=true; wt.repeat.set(Math.round(b.r*6.28/34),Math.max(1,Math.round(H/22)));
+      m=new T.Mesh(new T.CylinderGeometry(b.r,b.r,H,40),[wm(wall,wt),new T.MeshLambertMaterial({color:roof}),new T.MeshLambertMaterial({color:roof})]); m.position.set(b.x,H/2,b.y); }
+    else { const mk=(n)=>{ if(b.prop) return new T.MeshLambertMaterial({color:wall}); const wt=win.clone(); wt.needsUpdate=true; wt.repeat.set(Math.max(1,Math.round(n/34)),Math.max(1,Math.round(H/22))); return wm(wall,wt); };
+      const top=new T.MeshLambertMaterial({color:roof});
+      m=new T.Mesh(new T.BoxGeometry(b.w,H,b.h),[mk(b.h),mk(b.h),top,top,mk(b.w),mk(b.w)]); m.position.set(b.x+b.w/2,H/2,b.y+b.h/2); }
+    sc.add(m); }
+  // trees
+  const crown=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),new T.MeshLambertMaterial({color:0xffffff,flatShading:true}),TREES.length);
+  const trunk=new T.InstancedMesh(new T.CylinderGeometry(1,1.3,1,6),new T.MeshLambertMaterial({color:0x6b4a2f}),TREES.length), o3=new T.Object3D();
+  TREES.forEach((t,i)=>{ const r=t.r||20; o3.position.set(t.x,r*0.9+r*0.55,t.y); o3.scale.set(r,r*0.9,r); o3.rotation.set(0,t.ph||0,0); o3.updateMatrix(); crown.setMatrixAt(i,o3.matrix);
+    crown.setColorAt(i,px(t.x,t.y).lerp(new T.Color(0x3f7a35),0.35)); o3.position.set(t.x,r*0.55,t.y); o3.scale.set(r*0.12,r*1.1,r*0.12); o3.updateMatrix(); trunk.setMatrixAt(i,o3.matrix); });
+  sc.add(crown,trunk);
+  // lamps
+  const pole=new T.InstancedMesh(new T.CylinderGeometry(1.2,1.6,44,6),new T.MeshLambertMaterial({color:0x3a3f44}),LAMPS.length);
+  FPP.bulbM=new T.MeshBasicMaterial({color:0x777777}); const bulb=new T.InstancedMesh(new T.SphereGeometry(3.2,8,6),FPP.bulbM,LAMPS.length);
+  LAMPS.forEach((l,i)=>{ o3.position.set(l[0],22,l[1]); o3.scale.set(1,1,1); o3.rotation.set(0,0,0); o3.updateMatrix(); pole.setMatrixAt(i,o3.matrix); o3.position.y=45; o3.updateMatrix(); bulb.setMatrixAt(i,o3.matrix); });
+  sc.add(pole,bulb);
+  // live people, vehicles and markers (instanced, refreshed every frame)
+  const N=NPCS.length+96;
+  FPP.body=new T.InstancedMesh(new T.CapsuleGeometry(6,12,3,8),new T.MeshLambertMaterial({color:0xffffff}),N);
+  FPP.headM=new T.InstancedMesh(new T.SphereGeometry(5,10,8),new T.MeshLambertMaterial({color:0xc8956b}),N);
+  FPP.car=new T.InstancedMesh(new T.BoxGeometry(1,1,1),new T.MeshLambertMaterial({color:0xffffff}),160);
+  FPP.cab=new T.InstancedMesh(new T.BoxGeometry(1,1,1),new T.MeshLambertMaterial({color:0x1e2c3a}),160);
+  FPP.mk=new T.InstancedMesh(new T.CylinderGeometry(16,16,120,24,1,true),new T.MeshBasicMaterial({color:0xf2ba4a,transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false}),24);
+  [FPP.body,FPP.headM,FPP.car,FPP.cab,FPP.mk].forEach(m=>{ m.instanceMatrix.setUsage(T.DynamicDrawUsage); m.frustumCulled=false; sc.add(m); });
+  FPP.ring=new T.Mesh(new T.RingGeometry(0.96,1.04,64),new T.MeshBasicMaterial({color:0xe8503f,transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false})); FPP.ring.rotation.x=-Math.PI/2; FPP.ring.visible=false; sc.add(FPP.ring);
+  FPP.o3=o3; FPP.col=new T.Color(); FPP.sky=[new T.Color(0xbcd6e8),new T.Color(0x0d1626),new T.Color(0x8e9aa6)];
+}
+function fppRender(){
+  const T=THREE, r=FPP.r, cam=FPP.cam, o3=FPP.o3, C=FPP.col, w=innerWidth, h=innerHeight;
+  if(FPP.w!==w||FPP.h!==h){ FPP.w=w; FPP.h=h; r.setSize(w,h,false); cam.aspect=w/h; cam.updateProjectionMatrix(); }
+  const k=lampK(), rk=EV.cur==='rain'?EV.k:0;
+  const sky=FPP.sky[0].clone().lerp(FPP.sky[2],rk*0.7).lerp(FPP.sky[1],k); FPP.scene.background.copy(sky); FPP.scene.fog.color.copy(sky);
+  FPP.scene.fog.near=260-rk*120; FPP.scene.fog.far=(1600-k*700)-rk*500;
+  FPP.hemi.intensity=1.15-k*0.85; FPP.sun.intensity=1.25*(1-k)*(1-rk*0.6); FPP.bulbM.color.setHex(k>0?0xffd9a0:0x777777);
+  if(FPP.wk!==k){ FPP.wk=k; C.setRGB(1,0.72,0.42).multiplyScalar(k*0.95); FPP.winMats.forEach(m=>m.emissive.copy(C)); }
+  // people
+  let n=0; for(const o of NPCS){ if(Math.abs(o.x-S.px)>1500||Math.abs(o.y-S.py)>1500) continue; const down=o.ko>0;
+    o3.position.set(o.x,down?6:14,o.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(dotCol(o)));
+    o3.position.set(o.x+(down?14:0),down?6:31,o.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; }
+  const who=(g,col)=>{ if(n>=FPP.body.instanceMatrix.count||Math.abs(g.x-S.px)>1500||Math.abs(g.y-S.py)>1500) return; const down=g.ko>0;   // security and mission sentries
+    o3.position.set(g.x,down?6:14,g.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(col));
+    o3.position.set(g.x+(down?14:0),down?6:31,g.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; };
+  GUARDS.forEach(g=>who(g,'#3a4a63')); if(MX.sent) MX.sent.forEach(g=>who(g,g.alarm>0?'#e8503f':'#5b3a63'));
+  FPP.body.count=FPP.headM.count=n; FPP.body.instanceMatrix.needsUpdate=FPP.headM.instanceMatrix.needsUpdate=true; if(FPP.body.instanceColor) FPP.body.instanceColor.needsUpdate=true;
+  // vehicles
+  let c=0; const put=(x,y,a,L,W,H,col,cabin)=>{ if(c>=160) return; o3.position.set(x,H/2+3,y); o3.rotation.set(0,-a,0); o3.scale.set(L,H,W); o3.updateMatrix(); FPP.car.setMatrixAt(c,o3.matrix); FPP.car.setColorAt(c,C.set(col||'#d8d2c4'));
+    if(cabin){ o3.position.y=H+3+H*0.35; o3.scale.set(L*0.5,H*0.7,W*0.86); o3.updateMatrix(); } else { o3.scale.set(0.001,0.001,0.001); o3.updateMatrix(); } FPP.cab.setMatrixAt(c,o3.matrix); c++; };
+  for(let i=0;i<VEH.length;i++){ if(i===S.veh) continue; const v=VEH[i]; if(Math.abs(v.x-S.px)>1500||Math.abs(v.y-S.py)>1500) continue;
+    const bike=v.type==='bike', bug=v.type==='buggy'; put(v.x,v.y,v.ang,bike?32:bug?46:v.auto?40:v.suv?60:54,bike?10:bug?26:v.auto?24:v.suv?29:27,bike?12:bug?12:15,v.auto?'#f2c230':v.col,!bike); }
+  for(const t of TRAF){ if(!t.on||Math.abs(t.y-S.py)>1600) continue; const d=TK[t.k]||TK.car, a=Math.atan2(t.dir*Math.max(t.v,40),t.latV||0);
+    put(t.x,t.y,a,d.L,d.W,t.k==='bus'||t.k==='truck'?34:t.k==='bike'?12:15,t.k==='auto'?'#f2c230':t.col,t.k!=='bike'&&t.k!=='truck'); }
+  FPP.car.count=FPP.cab.count=c; FPP.car.instanceMatrix.needsUpdate=FPP.cab.instanceMatrix.needsUpdate=true; if(FPP.car.instanceColor) FPP.car.instanceColor.needsUpdate=true;
+  // mission markers: the same gold columns the map uses
+  let q=0; const mark=(x,y)=>{ if(q>=24) return; o3.position.set(x,60,y); o3.rotation.set(0,0,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.mk.setMatrixAt(q++,o3.matrix); };
+  if(MX.cur&&MXF[MX.cur.id].points){ try{ (MXF[MX.cur.id].points(MX.cur)||[]).forEach(p=>mark(p[0],p[1])); }catch(e){} }
+  else for(const id of MX.plan) if(!(MX.res[id]>0)){ const p=mxSpot(MXT[id].at); mark(p[0],p[1]); }
+  FPP.mk.count=q; FPP.mk.instanceMatrix.needsUpdate=true;
+  const cm=MX.cur&&MX.cur.id==='crowd'?MX.cur:null; FPP.ring.visible=!!cm; if(cm){ FPP.ring.position.set(cm.cx,0.6,cm.cy); FPP.ring.scale.set(cm.r,cm.r*0.45,1); }   // the oval to clear
+  // the eye
+  const inV=S.veh>=0, v=inV?VEH[S.veh]:null, a=inV?v.ang:S.face, eh=inV?(v.type==='bike'?24:19):27+(Math.hypot(S.vx,S.vy)>20?Math.sin(S.walkT||0)*1.2:0);
+  const ex=S.px+(inV?Math.cos(a)*4:0), ez=S.py+(inV?Math.sin(a)*4:0);
+  cam.position.set(ex,eh,ez); cam.lookAt(ex+Math.cos(a)*100,eh-7,ez+Math.sin(a)*100);
+  FPP.head.intensity=inV&&k>0?3.2*k:0; FPP.head.position.set(ex,eh,ez); FPP.head.target.position.set(ex+Math.cos(a)*200,0,ez+Math.sin(a)*200);
+  r.render(FPP.scene,cam);
+}
+function fppFrame(){
+  const on=fppOn(); if(on&&!FPP.st) fppLoad();
+  const vis=on&&FPP.st===2; if(FPP.cv&&FPP.vis!==vis){ FPP.vis=vis; FPP.cv.style.display=vis?'block':'none'; document.body.classList.toggle('fpp',vis); }
+  if(vis) fppRender();
+}
 /* ---------- UPDATE ---------- */
 let last=performance.now();
 let fpsN=0,fpsT=0,fpsV=0,showFps=false;
@@ -7073,7 +7187,8 @@ function loop(now){
     else if(S.scene==='party'){ if(S.running) partyUpdate(dt); else uiStep(dt); partyDraw(); }
     else if(S.scene==='office'){ if(S.running) officeUpdate(dt); else uiStep(dt); officeDraw(); }
     else if(S.scene==='cellar'){ if(S.running) clUpdate(dt); else uiStep(dt); clDraw(); }
-    else { if(S.running) update(dt); else uiStep(dt); draw(); } }
+    else { if(S.running) update(dt); else uiStep(dt); if(!FPP.vis||(++FPP.fr&3)===0) draw(); }
+    fppFrame(); }   // eye view keeps the 2D pass ticking at 1/4 rate
   catch(err){ $('badge').textContent='ERR: '+(err&&err.message?err.message:err);
     $('badge').style.color='#e8503f'; $('badge').style.opacity='1'; console.error(err); return; }
   requestAnimationFrame(loop);
@@ -7503,7 +7618,7 @@ function update(dt){
         vx:(Math.random()-.5)*40,vy:(Math.random()-.5)*40,c:'220,210,185'});
   } else {
     /* ---- on foot ---- */
-    if(CAM.mode===2){ const fw=-iy; S.face+=ix*3.2*dt; const bk=fw<0?0.6:1; ix=Math.cos(S.face)*fw*bk; iy=Math.sin(S.face)*fw*bk; }
+    if(CAM.mode>=2){ const fw=-iy; S.face+=ix*3.2*dt; const bk=fw<0?0.6:1; ix=Math.cos(S.face)*fw*bk; iy=Math.sin(S.face)*fw*bk; }
     [ix,iy]=wobDrift(ix,iy);
     const tired=S.en<22?0.72:1;
     const sp=(running?SP_RUN:SP_WALK)*tired*(S.chg>=0?0.6:1)*EV.slow*ecoSpeed();
@@ -7516,7 +7631,7 @@ function update(dt){
     const moving=Math.hypot(S.vx,S.vy)>20;
     if(moving){
       const st0=Math.floor(S.walkT/Math.PI);
-      if(CAM.mode!==2) S.face=Math.atan2(S.vy,S.vx); S.walkT+=dt*(running?13:9);
+      if(CAM.mode<2) S.face=Math.atan2(S.vy,S.vx); S.walkT+=dt*(running?13:9);
       if(Math.floor(S.walkT/Math.PI)!==st0) sfx(inWater(S.px,S.py,0)?'stepwood':running?'steprun':'step');
       if(Math.random()<dt*10) parts.push({x:S.px+(Math.random()-.5)*12,y:S.py+14,r:2.5+Math.random()*3,
         a:.35,vx:(Math.random()-.5)*20,vy:-8-Math.random()*10,c:'225,210,175'});
@@ -7623,10 +7738,10 @@ function update(dt){
   cam.x-=cam.ox||0; cam.y-=cam.oy||0;           // strip last frame's shake so it never accumulates
   { // camera mode: zoom eases in/out; Follow turns the world so you face up (lerped + rate-capped: no snapping)
     const zT=CAM_MODES[CAM.mode].z; CAM.z+=(zT-CAM.z)*Math.min(1,dt*3); if(Math.abs(zT-CAM.z)<0.002) CAM.z=zT;
-    const rT=CAM.mode===2?-Math.PI/2-S.face:0, dr=Math.atan2(Math.sin(rT-CAM.rot),Math.cos(rT-CAM.rot));
+    const rT=CAM.mode>=2?-Math.PI/2-S.face:0, dr=Math.atan2(Math.sin(rT-CAM.rot),Math.cos(rT-CAM.rot));
     const cap=3.4*dt; CAM.rot+=Math.max(-cap,Math.min(cap,dr*Math.min(1,dt*(S.veh>=0?3.4:2.8))));
     CAM.rot=Math.atan2(Math.sin(CAM.rot),Math.cos(CAM.rot));
-    if(CAM.mode!==2&&Math.abs(CAM.rot)<0.002) CAM.rot=0;
+    if(CAM.mode<2&&Math.abs(CAM.rot)<0.002) CAM.rot=0;
     if(!isFinite(CAM.rot)) CAM.rot=0; if(!isFinite(CAM.z)||CAM.z<=0) CAM.z=1; }
   let vfr=0;
   if(S.veh>=0){ const cv=VEH[S.veh]; vfr=Math.min(1,Math.hypot(cv.sp,cv.lat||0)/vehTop(cv)); }
@@ -7641,16 +7756,16 @@ function update(dt){
   const spk=S.veh>=0?Math.min(1,Math.abs(VEH[S.veh].sp)/SP_CAR):0;
   // Follow = chase cam: you sit low on screen, and the camera pushes further ahead as speed rises
   CAM.lead=(CAM.lead||0)+(VH*(0.13+0.21*spk)-(CAM.lead||0))*Math.min(1,dt*2.2);
-  const lead=CAM.mode===2?CAM.lead:spk*215/CAM.z;
-  const la=CAM.mode===2?-Math.PI/2-CAM.rot:S.face;        // Follow pushes ahead along screen-up, so you stay planted low on screen
+  const lead=CAM.mode>=2?CAM.lead:spk*215/CAM.z;
+  const la=CAM.mode>=2?-Math.PI/2-CAM.rot:S.face;        // Follow pushes ahead along screen-up, so you stay planted low on screen
   const tgx=S.px+Math.cos(la)*lead-VW/2, tgy=S.py+Math.sin(la)*lead-VH/2;
   if(!cam.init||!isFinite(cam.x)||!isFinite(cam.y)){cam.x=tgx;cam.y=tgy;cam.init=true;}
-  const cr=Math.min(1,dt*(CAM.mode===2?10:4.2));
+  const cr=Math.min(1,dt*(CAM.mode>=2?10:4.2));
   cam.x+=(tgx-cam.x)*cr;
   cam.y+=(tgy-cam.y)*cr;
   if(!isFinite(cam.x)) cam.x=0;
   if(!isFinite(cam.y)) cam.y=0;
-  const lx=CAM.mode===2||CAM.rot?VW/2:0, ly=CAM.mode===2||CAM.rot?VH/2:0;   // a rotated view can't be boxed to the world edge
+  const lx=CAM.mode>=2||CAM.rot?VW/2:0, ly=CAM.mode>=2||CAM.rot?VH/2:0;   // a rotated view can't be boxed to the world edge
   cam.x=Math.max(WORLD.x0-lx,Math.min(WORLD.w-VW+lx,cam.x));
   cam.y=Math.max(-ly,Math.min(WORLD.h-VH+ly,cam.y));
   // crash shake (decays fast) + a whisper of engine rumble scaled to speed
@@ -7781,8 +7896,8 @@ function upright(ax,ay,fn){ if(!CAM.on) return fn(); ctx.save(); ctx.translate(a
 // text grows gently with camera zoom (sqrt), so Close/Follow read well without giant labels
 function TXS(){ return RACE.on||S.scene!=='campus'?SCALE:SCALE/Math.sqrt(CAM.z||1); }
 function cycleCam(){
-  CAM.mode=(CAM.mode+1)%3; try{ sessionStorage.setItem('gate6.cam',String(CAM.mode)); }catch(e){}
-  toast('Camera: '+CAM_MODES[CAM.mode].name+(CAM.mode===2?(isTouch?' · stick up walks, sideways turns':' · W/S walk, A/D turn'):'')); sfx('ui');
+  CAM.mode=(CAM.mode+1)%4; try{ sessionStorage.setItem('gate6.cam',String(CAM.mode)); }catch(e){}
+  toast('Camera: '+CAM_MODES[CAM.mode].name+(CAM.mode>=2?(isTouch?' · stick up walks, sideways turns':' · W/S walk, A/D turn'):'')); sfx('ui');
 }
 // building + area labels: live upright sprites (they used to be painted into the tiles, which would spin in Follow mode)
 const LABELS=[];
@@ -8587,12 +8702,15 @@ function radioOn(vi){
   const p=el.play(); if(p&&p.catch) p.catch(()=>{ if(RADIO.el===el) radioOff(); });   // blocked: stay quiet, retry shortly
   el.addEventListener('playing',()=>{ if(RADIO.el===el) toast('&#128251; Radio on: '+escHtml(s.title)+' · '+escHtml(s.by)); },{once:true}); musDuck();
 }
+function radioSkip(){ if(!RADIO.on||S.veh!==RADIO.veh) return false; for(let i=toasts.length-1;i>=0;i--) if(/Radio on/.test(toasts[i].m)) toasts.splice(i,1); radioOn(S.veh); sfx('ui'); return true; }
 function radioOff(){ radioKill(); if(RADIO.on){ RADIO.on=false; musDuck(); } }
 function radioStep(dt){
+  if(!RADIO.on&&$('btnRadio').classList.contains('on')) $('btnRadio').classList.remove('on');
   if(RADIO.want>=0&&S.veh!==RADIO.want) RADIO.want=-1;
   if(!RADIO.on){ if(RADIO.want>=0&&S.scene==='campus'&&(RADIO.retry-=dt)<=0){ RADIO.retry=2.5; radioOn(RADIO.want); } return; }   // songs still loading or playback blocked
   if(S.veh!==RADIO.veh||S.scene!=='campus'||S.over){ RADIO.v-=dt*2.5; if(RADIO.v<=0){ radioOff(); return; } }
   else RADIO.v=Math.min(1,RADIO.v+dt*1.5);
+  { const b=$('btnRadio'), sh=RADIO.on&&S.veh===RADIO.veh&&S.scene==='campus'; if(b.classList.contains('on')!==sh) b.classList.toggle('on',sh); }
   if(RADIO.el) RADIO.el.volume=clamp01(RADIO.v*OPT.vMusic*OPT.vMaster*(OPT.mute||!OPT.music?0:1)*(VOX.speaking?0.3:1)*0.6);
 }
 
@@ -8615,9 +8733,15 @@ function drawNightLights(){
       ctx.globalAlpha=0.55*k; ctx.fillStyle='rgba(255,196,112,.5)'; ctx.fillRect(X0,Y0,ww,hh);
       ctx.globalAlpha=0.16*k; ctx.fillRect(X0-2*s,Y0-2*s,ww+4*s,hh+4*s); }); }
   const cars=[];
-  for(let i=0;i<VEH.length;i++){ const v=VEH[i]; if((i===S.veh||Math.abs(v.sp||0)>5)&&v.type!=='buggy'&&inV(v.x,v.y)) cars.push([v.x,v.y,v.ang,(v.auto?22:v.type==='car'?27:20),v.type==='bike']); }
+  for(let i=0;i<VEH.length;i++){ const v=VEH[i]; if((i===S.veh||Math.abs(v.sp||0)>5)&&inV(v.x,v.y)) cars.push([v.x,v.y,v.ang,(v.auto?22:v.type==='car'?27:v.type==='buggy'?24:20),v.type==='bike']); }
   if(!OPT.lowFx) for(const c of TRAF){ if(!c.on||!inV(c.x,c.y)) continue; cars.push([c.x,c.y,Math.atan2(c.dir*Math.max(c.v,40),c.latV||0),c.L/2,c.k==='bike']); }
+  const rk=EV.cur==='rain'?EV.k:0, tt=performance.now()/1000;
+  if(rk>0){   // wet road: lamps smear into long flickering streaks
+    for(let i=0;i<LAMPS.length;i++){ const l=LAMPS[i]; if(!inV(l[0],l[1])) continue; const x=W2SX(l[0]), y=W2SY(l[1]+14);
+      for(let j=0;j<3;j++){ const f=0.6+0.4*Math.sin(tt*(5+j*2.3)+i*1.7+j); ctx.globalAlpha=0.5*rk*k*f; ctx.drawImage(pool,x-(9-j*2)*s+Math.sin(tt*3+i+j)*2*s,y-6*s,(18-j*4)*s,(130-j*30)*s); } } }
   for(const [x,y,a,hl,bike] of cars){ ctx.save(); ctx.translate(W2SX(x),W2SY(y)); ctx.rotate(a);
+    if(rk>0){ const f=0.7+0.3*Math.sin(tt*7+x*0.05); ctx.globalAlpha=0.45*rk*k*f; ctx.drawImage(pool,hl*s,-(bike?5:14)*s,(bike?120:170)*s,(bike?10:28)*s);
+      ctx.globalAlpha=0.35*rk*k*f; ctx.fillStyle='rgba(255,60,40,.7)'; ctx.fillRect(-(hl+60)*s,-(bike?1.5:9)*s,58*s,(bike?3:18)*s); }
     const L=(bike?130:190)*s, Wd=(bike?60:105)*s; ctx.globalAlpha=0.4*k; ctx.drawImage(beam,hl*s,-Wd/2,L,Wd);
     ctx.globalAlpha=0.7*k; ctx.fillStyle='#ff3c28'; if(bike) ctx.fillRect(-(hl+2)*s,-1.5*s,2.5*s,3*s); else { ctx.fillRect(-(hl+1)*s,-10*s,2.5*s,5*s); ctx.fillRect(-(hl+1)*s,5*s,2.5*s,5*s); }
     ctx.restore(); }

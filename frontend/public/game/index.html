@@ -781,7 +781,7 @@
   #btnRadio.on{display:flex} #btnRadio:active{transform:scale(.95)}
   #btnRadio kbd{font:800 10px/1 Inter,system-ui;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.12);color:#f2ba4a}
   @media (pointer:coarse){ #btnRadio{left:50%;transform:translateX(-50%);bottom:auto;top:calc(140px + var(--sat));min-height:44px} #btnRadio:active{transform:translateX(-50%) scale(.95)} #btnRadio kbd{display:none} }
-  @media (pointer:coarse) and (orientation:landscape) and (max-height:520px){ #btnRadio{top:calc(70px + var(--sat))} }
+  @media (pointer:coarse) and (orientation:landscape) and (max-height:520px){ #btnRadio{top:auto;bottom:calc(104px + var(--sab))} }
   @media (max-height:520px){
     .title{font-size:clamp(34px,12vh,80px);margin:4px 0 2px}
     .tkick{font-size:9px} .ttag{font-size:14px;margin:2px 0 0}
@@ -7122,13 +7122,14 @@ function fppBuild(){
   LAMPS.forEach((l,i)=>{ o3.position.set(l[0],22,l[1]); o3.scale.set(1,1,1); o3.rotation.set(0,0,0); o3.updateMatrix(); pole.setMatrixAt(i,o3.matrix); o3.position.y=45; o3.updateMatrix(); bulb.setMatrixAt(i,o3.matrix); });
   sc.add(pole,bulb);
   // live people, vehicles and markers (instanced, refreshed every frame)
-  const N=NPCS.length+8;
+  const N=NPCS.length+96;
   FPP.body=new T.InstancedMesh(new T.CapsuleGeometry(6,12,3,8),new T.MeshLambertMaterial({color:0xffffff}),N);
   FPP.headM=new T.InstancedMesh(new T.SphereGeometry(5,10,8),new T.MeshLambertMaterial({color:0xc8956b}),N);
   FPP.car=new T.InstancedMesh(new T.BoxGeometry(1,1,1),new T.MeshLambertMaterial({color:0xffffff}),160);
   FPP.cab=new T.InstancedMesh(new T.BoxGeometry(1,1,1),new T.MeshLambertMaterial({color:0x1e2c3a}),160);
   FPP.mk=new T.InstancedMesh(new T.CylinderGeometry(16,16,120,24,1,true),new T.MeshBasicMaterial({color:0xf2ba4a,transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false}),24);
   [FPP.body,FPP.headM,FPP.car,FPP.cab,FPP.mk].forEach(m=>{ m.instanceMatrix.setUsage(T.DynamicDrawUsage); m.frustumCulled=false; sc.add(m); });
+  FPP.ring=new T.Mesh(new T.RingGeometry(0.96,1.04,64),new T.MeshBasicMaterial({color:0xe8503f,transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false})); FPP.ring.rotation.x=-Math.PI/2; FPP.ring.visible=false; sc.add(FPP.ring);
   FPP.o3=o3; FPP.col=new T.Color(); FPP.sky=[new T.Color(0xbcd6e8),new T.Color(0x0d1626),new T.Color(0x8e9aa6)];
 }
 function fppRender(){
@@ -7143,6 +7144,10 @@ function fppRender(){
   let n=0; for(const o of NPCS){ if(Math.abs(o.x-S.px)>1500||Math.abs(o.y-S.py)>1500) continue; const down=o.ko>0;
     o3.position.set(o.x,down?6:14,o.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(dotCol(o)));
     o3.position.set(o.x+(down?14:0),down?6:31,o.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; }
+  const who=(g,col)=>{ if(n>=FPP.body.instanceMatrix.count||Math.abs(g.x-S.px)>1500||Math.abs(g.y-S.py)>1500) return; const down=g.ko>0;   // security and mission sentries
+    o3.position.set(g.x,down?6:14,g.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(col));
+    o3.position.set(g.x+(down?14:0),down?6:31,g.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; };
+  GUARDS.forEach(g=>who(g,'#3a4a63')); if(MX.sent) MX.sent.forEach(g=>who(g,g.alarm>0?'#e8503f':'#5b3a63'));
   FPP.body.count=FPP.headM.count=n; FPP.body.instanceMatrix.needsUpdate=FPP.headM.instanceMatrix.needsUpdate=true; if(FPP.body.instanceColor) FPP.body.instanceColor.needsUpdate=true;
   // vehicles
   let c=0; const put=(x,y,a,L,W,H,col,cabin)=>{ if(c>=160) return; o3.position.set(x,H/2+3,y); o3.rotation.set(0,-a,0); o3.scale.set(L,H,W); o3.updateMatrix(); FPP.car.setMatrixAt(c,o3.matrix); FPP.car.setColorAt(c,C.set(col||'#d8d2c4'));
@@ -7157,6 +7162,7 @@ function fppRender(){
   if(MX.cur&&MXF[MX.cur.id].points){ try{ (MXF[MX.cur.id].points(MX.cur)||[]).forEach(p=>mark(p[0],p[1])); }catch(e){} }
   else for(const id of MX.plan) if(!(MX.res[id]>0)){ const p=mxSpot(MXT[id].at); mark(p[0],p[1]); }
   FPP.mk.count=q; FPP.mk.instanceMatrix.needsUpdate=true;
+  const cm=MX.cur&&MX.cur.id==='crowd'?MX.cur:null; FPP.ring.visible=!!cm; if(cm){ FPP.ring.position.set(cm.cx,0.6,cm.cy); FPP.ring.scale.set(cm.r,cm.r*0.45,1); }   // the oval to clear
   // the eye
   const inV=S.veh>=0, v=inV?VEH[S.veh]:null, a=inV?v.ang:S.face, eh=inV?(v.type==='bike'?24:19):27+(Math.hypot(S.vx,S.vy)>20?Math.sin(S.walkT||0)*1.2:0);
   const ex=S.px+(inV?Math.cos(a)*4:0), ez=S.py+(inV?Math.sin(a)*4:0);
@@ -7181,7 +7187,8 @@ function loop(now){
     else if(S.scene==='party'){ if(S.running) partyUpdate(dt); else uiStep(dt); partyDraw(); }
     else if(S.scene==='office'){ if(S.running) officeUpdate(dt); else uiStep(dt); officeDraw(); }
     else if(S.scene==='cellar'){ if(S.running) clUpdate(dt); else uiStep(dt); clDraw(); }
-    else { if(S.running) update(dt); else uiStep(dt); if(!FPP.vis||(++FPP.fr&3)===0) draw(); fppFrame(); } }   // eye view keeps the 2D pass ticking at 1/4 rate
+    else { if(S.running) update(dt); else uiStep(dt); if(!FPP.vis||(++FPP.fr&3)===0) draw(); }
+    fppFrame(); }   // eye view keeps the 2D pass ticking at 1/4 rate
   catch(err){ $('badge').textContent='ERR: '+(err&&err.message?err.message:err);
     $('badge').style.color='#e8503f'; $('badge').style.opacity='1'; console.error(err); return; }
   requestAnimationFrame(loop);
