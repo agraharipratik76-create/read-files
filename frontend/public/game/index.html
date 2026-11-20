@@ -7190,7 +7190,7 @@ function fppRender(){
     o3.position.set(o.x,down?6:14,o.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(dotCol(o)));
     o3.position.set(o.x+(down?14:0),down?6:31,o.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; }
   const who=(g,col)=>{ if(n>=FPP.body.instanceMatrix.count||Math.abs(g.x-S.px)>1500||Math.abs(g.y-S.py)>1500) return; const down=g.ko>0;   // security and mission sentries
-    o3.position.set(g.x,down?6:14,g.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(col));
+    o3.position.set(g.x,down?6:14,g.y); o3.rotation.set(down?Math.PI/2:0,0,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.body.setMatrixAt(n,o3.matrix); FPP.body.setColorAt(n,C.set(col));
     o3.position.set(g.x+(down?14:0),down?6:31,g.y); o3.rotation.set(0,0,0); o3.updateMatrix(); FPP.headM.setMatrixAt(n,o3.matrix); n++; };
   GUARDS.forEach(g=>who(g,'#3a4a63')); if(MX.sent) MX.sent.forEach(g=>who(g,g.alarm>0?'#e8503f':'#5b3a63'));
   // vehicles
@@ -7226,7 +7226,7 @@ function fppRender(){
   FPP.body.count=FPP.headM.count=n; FPP.body.instanceMatrix.needsUpdate=FPP.headM.instanceMatrix.needsUpdate=true; if(FPP.body.instanceColor) FPP.body.instanceColor.needsUpdate=true;
   FPP.dot.count=dn; FPP.dot.instanceMatrix.needsUpdate=true;
   const wp=UI.sideWp; FPP.side.visible=!!wp; if(wp) FPP.side.position.set(wp[0],70,wp[1]);
-  FPP.gates.forEach((m,j)=>{ const gi=a0&&a0.id==='yulu'?a0.gate+j:-1, g=gi>=0?YULU_GATES[gi]:null; m.visible=!!g; if(g){ m.position.set(g[0],30,g[1]); m.rotation.set(0,Math.atan2(g[1]-S.py,g[0]-S.px)+Math.PI/2,0); } });
+  FPP.gates.forEach((m,j)=>{ const gi=a0&&a0.id==='yulu'?a0.gate+j:-1, g=gi>=0?YULU_GATES[gi]:null; m.visible=!!g; if(g){ m.position.set(g[0],80,g[1]); m.rotation.set(0,-Math.atan2(g[1]-S.py,g[0]-S.px)+Math.PI/2,0); } });
   let sk=0; for(const s2 of ACT.stickers){ if(s2.got||Math.abs(s2.x-S.px)>1200||Math.abs(s2.y-S.py)>1200||sk>=FPP.stk.instanceMatrix.count) continue;
     o3.position.set(s2.x,4+Math.sin(tt*2.5+s2.x)*1.5,s2.y); o3.rotation.set(0,tt*1.4+s2.rot,0); o3.scale.set(1,1,1); o3.updateMatrix(); FPP.stk.setMatrixAt(sk,o3.matrix);
     FPP.stk.setColorAt(sk++,C.set(s2.kind==='star'?'#f2ba4a':s2.kind==='bolt'?'#4f8fe0':s2.kind==='heart'?'#e04f9f':'#45c9a0')); }
@@ -7236,6 +7236,8 @@ function fppRender(){
   const ex=S.px+(inV?Math.cos(a)*4:0), ez=S.py+(inV?Math.sin(a)*4:0);
   cam.position.set(ex,eh,ez); cam.lookAt(ex+Math.cos(a)*100,eh-7,ez+Math.sin(a)*100);
   FPP.head.intensity=inV&&k>0?3.2*k:0; FPP.head.position.set(ex,eh,ez); FPP.head.target.position.set(ex+Math.cos(a)*200,0,ez+Math.sin(a)*200);
+  if(inV&&isTouch&&innerHeight>innerWidth&&(FPP.fr2=(FPP.fr2||0)+1)%20===1){ let bt=0; document.querySelectorAll('.panel').forEach(e=>{ const r=e.getBoundingClientRect(); if(r.width&&r.left<innerWidth*0.45&&r.top<innerHeight*0.5) bt=Math.max(bt,r.bottom); });   // sit below the left HUD column, whatever it holds
+    $('dash').style.top=Math.round(Math.max(150,bt+8))+'px'; }
   if(inV){ const kmh=hudC.kmh||0, fr=Math.min(1,(parseFloat($('spb').style.width)||0)/100);
     if(FPP.dk!==kmh){ FPP.dk=kmh; $('dashKmh').textContent=kmh; $('dashArc').style.strokeDashoffset=(157*(1-fr)).toFixed(1); $('dashNeedle').style.transform='rotate('+(-90+180*fr).toFixed(1)+'deg)'; }
     const rt=RADIO.on&&RADIO.veh===S.veh?(RADIO.playing?RADIO.last.title:'Tuning…'):'Radio off', rb=RADIO.on&&RADIO.veh===S.veh&&RADIO.last?RADIO.last.by:(RADIO.want===S.veh?'searching for a signal':'take a car on the main road');
@@ -8771,7 +8773,9 @@ function radioOn(vi,again){
   const s=list.length?list[(Math.random()*list.length)|0]:(RADIO.last&&ok(RADIO.last)?RADIO.last:null);
   if(!s){ radioOff(); RADIO.retry=8; return; }
   RADIO.last=s; radioKill();
+  const was=RADIO.playing;
   const el=new Audio(); el.preload='auto'; el.src=s.src.url; el.volume=0; RADIO.el=el; RADIO.v=0; RADIO.on=true; RADIO.playing=false; RADIO.wait=0; RADIO.veh=vi;
+  if(was) musDuck();   // campus music returns while the next track loads
   const skip=()=>{ if(RADIO.el!==el) return; if(++RADIO.tries>=3){ radioOff(); RADIO.retry=8; return; } radioOn(RADIO.veh,true); };   // try another track; give up after three
   RADIO.skipFn=skip;
   el.addEventListener('loadedmetadata',()=>{ try{ if(el.duration>90) el.currentTime=15+Math.random()*(el.duration-75); }catch(e){} },{once:true});   // tuned in mid-song
