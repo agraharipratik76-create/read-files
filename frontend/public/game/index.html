@@ -4977,7 +4977,7 @@ function voxUnlock(){   // iOS only lets speech start inside a gesture once; a s
 function voxSpeaking(on,mode){
   if(VOX.speaking!==on){ VOX.speaking=on; musDuck(); }
   if(on&&mode) VOX.mode=mode;
-  const el=$('ofvoice'); if(el){ const t=!on?'':VOX.mode==='clip'?'recorded line':VOX.mode==='tts'?'synthesized voice':'no voice available'; if(el.textContent!==t) el.textContent=t; }
+  const el=$('ofvoice'); if(el){ const t=!on?'':VOX.mode==='clip'?'his voice (AI-recreated)':VOX.mode==='tts'?'synthesized voice':'no voice available'; if(el.textContent!==t) el.textContent=t; }
 }
 function voxStop(){
   VOX.tok++; VOX.done=true; VOX.cur=null;
@@ -5152,7 +5152,7 @@ function mixerVoices(){
   sel.value=vs.some(v=>v.name===cur)?cur:'';
   const p=voxPick();
   $('mxVoiceNote').innerHTML=(HAS_TTS&&vs.length?'Now: <b>'+escHtml(p?p.name:'browser default')+'</b>. ':'This browser has no speech voices, so his lines show as subtitles. ')+
-    'A synthesized stand-in, not Adhiraj Arora’s real voice. Recordings of his lines (made with his permission) in <code>assets/adhiraj/</code> are used first.';
+    'His fixed lines use an AI recreation of Adhiraj Arora’s voice, made with his permission (<code>assets/adhiraj/</code>). Lines with a teammate’s name or a visit number use this synthesized stand-in.';
 }
 function mixerTrack(){
   const el=$('mxTrack'); if(!el) return;

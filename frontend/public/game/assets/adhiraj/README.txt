@@ -1,5 +1,5 @@
-Optional, and only with Adhiraj Arora's permission. Without these files the game uses a
-synthesized stand-in voice (labelled as such). One MP3 per line, named by line id:
+Adhiraj Arora's office lines, recreated in his voice with AI voice cloning (with his permission)
+from his recorded message to SSB's founding batch. One MP3 per line id:
 
   open-1 ... open-5        opening line by star level
   mid-1 ... mid-9          lecture lines
@@ -8,5 +8,5 @@ synthesized stand-in voice (labelled as such). One MP3 per line, named by line i
   close-long, close-quiet, close-apo, close-default
   brushoff                 "Do you need something?"
 
-Lines containing a teammate's name or a visit number always use the synthesized voice.
-The exact text of each line is in DIR_OPEN / DIR_MID / DIR_REACT / dirClosing() in the HTML.
+Lines containing a teammate's name or a visit number use the synthesized stand-in voice.
+Regenerate with /app/scripts/adhiraj_voice.py (clone once, then generate lines).
