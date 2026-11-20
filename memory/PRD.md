@@ -4,3 +4,4 @@ Original ask: read attached zip and run the existing game as-is.
 Backlog: P1 gameplay bug fixes/perf/mobile on request; P2 new features (leaderboards etc.).
 - 2026-06: Mobile touch check done. Portrait OK. Added landscape-phone CSS (2-col side buttons, E beside SLAP, mission card centred bottom) to stop overlaps.
 - 2026-06: Renamed to Bawalverse (tagline 'Bawal hai. Karna padega.'); short-screen title/char-select CSS; fixed phone mission timer overlap, campus map daily mission markers, Yulu #0 rank, Pitch tab-switch fail. Remaining findings in /app/.emergent/testing/reports/iteration_1/run-report.json
+- 2026-06: Adhiraj voice cloned (fal MiniMax voice-clone + speech-2.8-hd via Universal Key) -> 25 fixed lines in assets/adhiraj/*.mp3; script /app/scripts/adhiraj_voice.py (voice id in scripts/.adhiraj_voice_id). Hardened voxClip (no overlap/hang/permanent disable); map markers shown mid-mission. Open findings: iteration_2 report.

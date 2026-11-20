@@ -3524,7 +3524,7 @@ function bmDraw(){
   if(m){ const b=byId[m.target], d=b.door; const pr=(t%1300)/1300;
     c.strokeStyle='rgba(242,186,74,'+(1-pr).toFixed(2)+')'; c.lineWidth=2; c.beginPath(); c.arc(X(d[0]),Y(d[1]),6+pr*16,0,7); c.stroke();
     c.fillStyle='#f2ba4a'; c.beginPath(); c.arc(X(d[0]),Y(d[1]),5,0,7); c.fill(); }
-  if(!MX.cur) for(const id of MX.plan){ if(MX.res[id]>0) continue; const q=mxSpot(MXT[id].at), pr=(t%1300)/1300;
+  for(const id of MX.plan){ if(MX.res[id]>0||(MX.cur&&MX.cur.id===id)) continue; const q=mxSpot(MXT[id].at), pr=(t%1300)/1300;
     c.strokeStyle=MXT[id].col; c.globalAlpha=1-pr; c.lineWidth=2; c.beginPath(); c.arc(X(q[0]),Y(q[1]),6+pr*16,0,7); c.stroke(); c.globalAlpha=1;
     c.fillStyle=MXT[id].col; c.beginPath(); c.arc(X(q[0]),Y(q[1]),5,0,7); c.fill();
     c.font='800 10.5px Inter, system-ui, sans-serif'; c.textAlign='left'; c.textBaseline='middle'; const lw=c.measureText(MXT[id].name).width;
@@ -5007,16 +5007,16 @@ function voxTimed(s,tok,cps,next,mum){
   VOX.timers.push(setTimeout(()=>{ if(tok!==VOX.tok) return; if(mum) voxSpeaking(false); next(); },VOX.cur.dur));
 }
 function voxClip(s,tok,next,fallback){
-  if(!s.id||VOX.noClips||VOX.clipOk[s.id]===false) return fallback();
-  const el=VOX.el||(VOX.el=new Audio()); let settled=false;
-  const fail=()=>{ if(settled) return; settled=true; VOX.clipOk[s.id]=false;
-    if(++VOX.miss>=3&&!Object.values(VOX.clipOk).some(v=>v===true)) VOX.noClips=true;
-    if(tok===VOX.tok) fallback(); };
-  el.onerror=fail;
-  el.onplaying=()=>{ if(settled) return; settled=true; VOX.clipOk[s.id]=true; VOX.cur={a:s.a,b:s.b,mode:'clip',el}; voxSpeaking(true,'clip'); };
-  el.onended=()=>{ if(tok!==VOX.tok) return; voxSpeaking(false); next(); };
-  try{ el.preload='auto'; el.src='assets/adhiraj/'+s.id+'.mp3'; el.volume=voxVol(); const p=el.play(); if(p&&p.catch) p.catch(fail); }catch(e){ fail(); }
-  VOX.timers.push(setTimeout(fail,1500));
+  if(!s.id||VOX.clipOk[s.id]===false) return fallback();
+  const el=VOX.el||(VOX.el=new Audio()); let started=false, over=false;
+  const off=()=>{ try{ el.pause(); el.onended=el.onerror=el.onplaying=null; }catch(e){} };
+  const fail=bad=>{ if(over) return; over=true; off(); if(bad&&!started) VOX.clipOk[s.id]=false;
+    if(tok!==VOX.tok) return; voxSpeaking(false); started?next():fallback(); };   // mid-line failure moves on instead of hanging
+  el.onerror=()=>fail(true);
+  el.onplaying=()=>{ if(over||started) return; started=true; VOX.clipOk[s.id]=true; VOX.cur={a:s.a,b:s.b,mode:'clip',el}; voxSpeaking(true,'clip'); };
+  el.onended=()=>{ if(over) return; over=true; off(); if(tok!==VOX.tok) return; voxSpeaking(false); next(); };
+  try{ el.preload='auto'; el.src='assets/adhiraj/'+s.id+'.mp3'; el.volume=voxVol(); const p=el.play(); if(p&&p.catch) p.catch(()=>fail(false)); }catch(e){ fail(false); }
+  VOX.timers.push(setTimeout(()=>{ if(!started) fail(false); },2500));
 }
 function voxTTS(s,spoken,tok,next){
   if(!HAS_TTS||VOX.broken>=2) return false;
