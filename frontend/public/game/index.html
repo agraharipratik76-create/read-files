@@ -2249,8 +2249,21 @@ const TRAF=[];   // filled by trafInit() on first use (the main road module)
 /* ---------- HELPERS ---------- */
 function hhmm(t){const m=((t%1440)+1440)%1440;
   return String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.floor(m%60)).padStart(2,'0');}
-function toast(m,c){ toasts.push({m,t:c?4.2:2.7,c}); while(toasts.length>3) toasts.shift(); renderToasts(); }
-function renderToasts(){ $('toast').innerHTML=toasts.map(t=>'<div class="tst'+(t.c?' '+t.c:'')+'">'+t.m+'</div>').join(''); }
+// calm toasts: one at a time, no repeats for a while, minor lines skipped when something else is showing
+const toastQ=[], toastSeen=new Map(); let toastLast=-1e9;
+function toast(m,c){
+  const now=performance.now(), plain=String(m).replace(/<[^>]*>/g,''), key=plain.replace(/[0-9]+/g,'#');
+  const imp=!!c||/₹|&#8377;|energy|% build|Day [0-9]|Mission|Radio on/.test(plain+String(m));
+  if(now-(toastSeen.get(key)||-1e9)<45000) return; toastSeen.set(key,now);
+  if(toastSeen.size>200) toastSeen.clear();
+  const it={m,t:c?4:imp?3.2:2.4,c,imp};
+  const cur=toasts[0];
+  if(!cur){ if(!imp&&now-toastLast<2500) return; toasts.push(it); toastLast=now; renderToasts(); return; }
+  if(!imp) return;                                   // minor line while another is showing: skip it
+  if(!cur.imp){ toasts[0]=it; toastLast=now; renderToasts(); return; }   // important replaces a minor one
+  toastQ.push(it); while(toastQ.length>2) toastQ.shift();               // otherwise wait its turn
+}
+function renderToasts(){ if(!toasts.length&&toastQ.length){ toasts.push(toastQ.shift()); toastLast=performance.now(); } $('toast').innerHTML=toasts.map(t=>'<div class="tst'+(t.c?' '+t.c:'')+'">'+t.m+'</div>').join(''); }
 function apply(r){
   if(!r) return; const o=[];
   if(r.bu){ const bu=r.bu>0?Math.round(r.bu*ecoBuild()):r.bu; S.bu=Math.max(0,Math.min(100,S.bu+bu)); o.push((bu>0?'+':'')+bu+'% build');}
@@ -8799,7 +8812,7 @@ function radioOn(vi,again){
   el.addEventListener('waiting',()=>{ if(RADIO.el===el&&RADIO.playing){ RADIO.playing=false; musDuck(); } });   // buffering: campus music comes back meanwhile
   const p=el.play(); if(p&&p.catch) p.catch(()=>{ if(RADIO.el===el) radioOff(); });   // blocked: stay quiet, retry shortly
 }
-function radioSkip(){ if(!RADIO.on||S.veh!==RADIO.veh) return false; for(let i=toasts.length-1;i>=0;i--) if(/Radio on/.test(toasts[i].m)) toasts.splice(i,1); radioOn(S.veh); sfx('ui'); return true; }
+function radioSkip(){ if(!RADIO.on||S.veh!==RADIO.veh) return false; for(let i=toasts.length-1;i>=0;i--) if(/Radio on/.test(toasts[i].m)) toasts.splice(i,1); for(let i=toastQ.length-1;i>=0;i--) if(/Radio on/.test(toastQ[i].m)) toastQ.splice(i,1); for(const k of [...toastSeen.keys()]) if(/Radio on/.test(k)) toastSeen.delete(k); radioOn(S.veh); sfx('ui'); return true; }
 function radioOff(){ radioKill(); if(RADIO.on){ RADIO.on=false; RADIO.playing=false; musDuck(); } }
 function radioStep(dt){
   if(!RADIO.on&&$('btnRadio').classList.contains('on')) $('btnRadio').classList.remove('on');
