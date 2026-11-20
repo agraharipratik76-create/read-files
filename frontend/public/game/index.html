@@ -3569,6 +3569,9 @@ function bmDraw(){
   if(m){ const b=byId[m.target], d=b.door; const pr=(t%1300)/1300;
     c.strokeStyle='rgba(242,186,74,'+(1-pr).toFixed(2)+')'; c.lineWidth=2; c.beginPath(); c.arc(X(d[0]),Y(d[1]),6+pr*16,0,7); c.stroke();
     c.fillStyle='#f2ba4a'; c.beginPath(); c.arc(X(d[0]),Y(d[1]),5,0,7); c.fill(); }
+  if(MX.cur&&MXF[MX.cur.id].points){ let pts=[]; try{ pts=MXF[MX.cur.id].points(MX.cur)||[]; }catch(e){}
+    for(const q of pts){ const pr=(t%1000)/1000; c.strokeStyle=q[2]||'#f2ba4a'; c.globalAlpha=1-pr; c.lineWidth=2.5; c.beginPath(); c.arc(X(q[0]),Y(q[1]),7+pr*18,0,7); c.stroke(); c.globalAlpha=1;
+      c.fillStyle=q[2]||'#f2ba4a'; c.beginPath(); c.arc(X(q[0]),Y(q[1]),6,0,7); c.fill(); c.strokeStyle='#fff3dc'; c.lineWidth=1.5; c.stroke(); } }
   for(const id of MX.plan){ if(MX.res[id]>0||(MX.cur&&MX.cur.id===id)) continue; const q=mxSpot(MXT[id].at), pr=(t%1300)/1300;
     c.strokeStyle=MXT[id].col; c.globalAlpha=1-pr; c.lineWidth=2; c.beginPath(); c.arc(X(q[0]),Y(q[1]),6+pr*16,0,7); c.stroke(); c.globalAlpha=1;
     c.fillStyle=MXT[id].col; c.beginPath(); c.arc(X(q[0]),Y(q[1]),5,0,7); c.fill();
@@ -6388,11 +6391,11 @@ function mxBrief(id){
     <div class="sh-foot"><button class="pbtn" data-no style="width:auto;min-height:48px;margin:0;gap:8px">Not yet <kbd class="desk-only">Esc</kbd></button><span>Start <kbd class="desk-only">Space</kbd></span></div>`,
     ()=>{ closeCard(); mxStart(id); }, ()=>closeCard());
 }
-function mxPar(id){ const d=mxD(); return {chai:95,yulu:62,crowd:45,recovery:125,defuse:150,impostor:200,duo:170,heist:70,basement:160,allnighter:0,pitch:0,demoday:0}[id]*d; }
+function mxPar(id){ const d=mxD(); return Math.ceil({chai:95,yulu:62,crowd:45,recovery:125,defuse:150,impostor:200,duo:170,heist:70,basement:160,allnighter:0,pitch:0,demoday:0}[id]*d); }
 function mxStart(id){
   const T=MXT[id], m={id,t:0,limit:0,par:mxPar(id),ko0:S.ko,b0:S.busted,stage:0};
   MX.cur=m; MX.hudKey=''; sfx('star'); runStart(m);
-  try{ MXF[id].start(m); }catch(e){ console.error(e); MX.cur=null; toast('That mission refused to start. Like a laptop on 2% battery.'); return; }
+  try{ MXF[id].start(m); if(m.par) m.par=Math.ceil(m.par); }catch(e){ console.error(e); MX.cur=null; toast('That mission refused to start. Like a laptop on 2% battery.'); return; }
   saveGame('mission',null,true);
   toast(T.icon+' '+T.name+': go!','evt');
 }
@@ -6608,7 +6611,7 @@ function mxPickNPCs(n,from,minD,spread){
   return out;
 }
 function mxHoldNPC(n,role){ n.mxRole=role; n.hold=true; n.hx=n.x; n.hy=n.y; n.tx=n.x; n.ty=n.y; }
-function mxCrowdIn(o,m){ return o.ko<=0&&(o.mxRole==='crowd'||(o.asked&&!o.out))&&Math.hypot(o.x-m.cx,o.y-m.cy)<m.r+12; }
+function mxCrowdIn(o,m){ return o.ko<=0&&Math.hypot(o.x-m.cx,o.y-m.cy)<m.r; }   // anyone from the crowd standing inside the drawn ring
 function mxFreeNPC(n){ if(!n) return; n.mxRole=null; n.hold=false; n.tx=n.x; n.ty=n.y; }
 function mxNear(p,r){ return Math.hypot(p[0]-S.px,p[1]-S.py)<(r||60); }
 
