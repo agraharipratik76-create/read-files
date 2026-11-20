@@ -7068,7 +7068,7 @@ function loop(now){
   const dt=Math.min(0.05,(now-last)/1000); last=now;
   fpsN++; fpsT+=dt;
   if(fpsT>=0.5){ fpsV=Math.round(fpsN/fpsT); fpsN=0; fpsT=0; if(showFps)$('badge').textContent=fpsV+' FPS'; }
-  try{ paStep(dt); pvStep(); ecoStep(dt); mxStep(dt);
+  try{ paStep(dt); pvStep(); ecoStep(dt); mxStep(dt); radioStep(dt);
     if(RACE.on){ if(RACE.live) raceUpdate(dt); raceDraw(); } else if(UI.map){ uiStep(dt); bmDraw(); }
     else if(S.scene==='party'){ if(S.running) partyUpdate(dt); else uiStep(dt); partyDraw(); }
     else if(S.scene==='office'){ if(S.running) officeUpdate(dt); else uiStep(dt); officeDraw(); }
@@ -7603,7 +7603,7 @@ function update(dt){
   if(updateWanted(dt)) return;
 
   // ---- traffic ----
-  trafficStep(dt); radioStep(dt);
+  trafficStep(dt);
   updateEvents(dt);
 
   // ---- particles / pops / toasts ----
@@ -8572,10 +8572,10 @@ function jackTraf(c){   // step into a running car, auto or bike on the main roa
   if(c.k==='bike') v.sc=true; if(c.k==='auto') v.auto=true;
   c.on=false; c.wait=1.5+Math.random()*3;
   const old=VEH.filter(x=>x.jack).length>=6?VEH.findIndex(x=>x.jack):-1;   // reuse an abandoned one instead of piling up
-  if(old>=0) VEH[old]=v; else VEH.push(v); enterVeh(old>=0?old:VEH.length-1); if(c.k!=='bike') radioOn(S.veh);
+  if(old>=0) VEH[old]=v; else VEH.push(v); enterVeh(old>=0?old:VEH.length-1); if(c.k!=='bike'){ RADIO.want=S.veh; RADIO.retry=0; radioOn(S.veh); }
   toast('The driver shrugs and steps out. Free ride.'); }
 /* ---------- CAR RADIO: the party songs, in any car you take from the main road ---------- */
-var RADIO={el:null,on:false,veh:-1,v:0,last:null};   // var: musTarget may read it before this line runs
+var RADIO={el:null,on:false,veh:-1,v:0,last:null,want:-1,retry:0};   // var: musTarget may read it before this line runs
 function radioKill(){ const el=RADIO.el; if(!el) return; try{ el.onended=el.onerror=null; el.pause(); el.removeAttribute('src'); el.load(); }catch(e){} RADIO.el=null; }
 function radioOn(vi){
   const list=SONGS.filter(s=>s.src&&!s.bad&&s!==RADIO.last); if(!list.length&&!(RADIO.last&&RADIO.last.src)) return;
@@ -8584,13 +8584,14 @@ function radioOn(vi){
   el.addEventListener('loadedmetadata',()=>{ try{ if(el.duration>90) el.currentTime=15+Math.random()*(el.duration-75); }catch(e){} },{once:true});   // tuned in mid-song
   el.onended=()=>{ if(RADIO.el===el) radioOn(RADIO.veh); };
   el.onerror=()=>{ if(RADIO.el===el){ s.bad=true; radioOff(); } };
-  const p=el.play(); if(p&&p.catch) p.catch(()=>{});
-  toast('&#128251; Radio on: '+escHtml(s.title)+' · '+escHtml(s.by)); musDuck();
+  const p=el.play(); if(p&&p.catch) p.catch(()=>{ if(RADIO.el===el) radioOff(); });   // blocked: stay quiet, retry shortly
+  el.addEventListener('playing',()=>{ if(RADIO.el===el) toast('&#128251; Radio on: '+escHtml(s.title)+' · '+escHtml(s.by)); },{once:true}); musDuck();
 }
 function radioOff(){ radioKill(); if(RADIO.on){ RADIO.on=false; musDuck(); } }
 function radioStep(dt){
-  if(!RADIO.on) return;
-  if(S.veh!==RADIO.veh||S.scene!=='campus'){ RADIO.v-=dt*2.5; if(RADIO.v<=0){ radioOff(); return; } }
+  if(RADIO.want>=0&&S.veh!==RADIO.want) RADIO.want=-1;
+  if(!RADIO.on){ if(RADIO.want>=0&&S.scene==='campus'&&(RADIO.retry-=dt)<=0){ RADIO.retry=2.5; radioOn(RADIO.want); } return; }   // songs still loading or playback blocked
+  if(S.veh!==RADIO.veh||S.scene!=='campus'||S.over){ RADIO.v-=dt*2.5; if(RADIO.v<=0){ radioOff(); return; } }
   else RADIO.v=Math.min(1,RADIO.v+dt*1.5);
   if(RADIO.el) RADIO.el.volume=clamp01(RADIO.v*OPT.vMusic*OPT.vMaster*(OPT.mute||!OPT.music?0:1)*(VOX.speaking?0.3:1)*0.6);
 }
@@ -8609,13 +8610,13 @@ function drawNightLights(){
   camPush(); ctx.globalCompositeOperation='lighter';
   ctx.globalAlpha=0.4*k;
   for(const l of LAMPS){ if(!inV(l[0],l[1])) continue; const x=W2SX(l[0]), y=W2SY(l[1]+12), rw=125*s, rh=96*s; ctx.drawImage(pool,x-rw,y-rh,2*rw,2*rh); }
-  for(const b of B){ if(!b.win||b.x+b.w<x0||b.x>x1||b.y+b.h<y0||b.y>y1) continue;
+  if(!OPT.lowFx) for(const b of B){ if(!b.win||b.x+b.w<x0||b.x>x1||b.y+b.h<y0||b.y>y1) continue;
     b.win.forEach((n,i)=>{ if((i*37)%5===0) return; const X0=W2SX(n[0]), Y0=W2SY(n[1]), ww=n[2]*s, hh=n[3]*s;
       ctx.globalAlpha=0.55*k; ctx.fillStyle='rgba(255,196,112,.5)'; ctx.fillRect(X0,Y0,ww,hh);
       ctx.globalAlpha=0.16*k; ctx.fillRect(X0-2*s,Y0-2*s,ww+4*s,hh+4*s); }); }
   const cars=[];
   for(let i=0;i<VEH.length;i++){ const v=VEH[i]; if((i===S.veh||Math.abs(v.sp||0)>5)&&v.type!=='buggy'&&inV(v.x,v.y)) cars.push([v.x,v.y,v.ang,(v.auto?22:v.type==='car'?27:20),v.type==='bike']); }
-  for(const c of TRAF){ if(!c.on||!inV(c.x,c.y)) continue; cars.push([c.x,c.y,Math.atan2(c.dir*Math.max(c.v,40),c.latV||0),c.L/2,c.k==='bike']); }
+  if(!OPT.lowFx) for(const c of TRAF){ if(!c.on||!inV(c.x,c.y)) continue; cars.push([c.x,c.y,Math.atan2(c.dir*Math.max(c.v,40),c.latV||0),c.L/2,c.k==='bike']); }
   for(const [x,y,a,hl,bike] of cars){ ctx.save(); ctx.translate(W2SX(x),W2SY(y)); ctx.rotate(a);
     const L=(bike?130:190)*s, Wd=(bike?60:105)*s; ctx.globalAlpha=0.4*k; ctx.drawImage(beam,hl*s,-Wd/2,L,Wd);
     ctx.globalAlpha=0.7*k; ctx.fillStyle='#ff3c28'; if(bike) ctx.fillRect(-(hl+2)*s,-1.5*s,2.5*s,3*s); else { ctx.fillRect(-(hl+1)*s,-10*s,2.5*s,5*s); ctx.fillRect(-(hl+1)*s,5*s,2.5*s,5*s); }
