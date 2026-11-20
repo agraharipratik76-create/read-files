@@ -18,3 +18,7 @@ Backlog: P1 gameplay bug fixes/perf/mobile on request; P2 new features (leaderbo
 - 2026-06: New players start with ₹6,000 (all characters). MIN_PER_SEC 3->1.5 (day ≈10.7 real min). Clock running out at 23:00/04:00 rolls straight into next day in place (toast summary, no end card, rent/prize/streak still applied); sleeping at PG keeps the full summary card.
 - 2026-06: Calm toasts: one visible at a time, important (evt/money/day/mission/radio) queue (max 2) or replace minor; minor lines dropped while another shows, 2.5s gap, no repeats within 45s.
 - 2026-06: FIX: comment in new-game line had disabled S.en/mxPlanDay(1)/spawnLoot(1) (restored); rollover respects open mission-failed sheet. Open: iteration_7 report (many minor).
+
+## Notification settings (Jun 2026)
+- Pause menu "Messages" switch cycles All messages / Important only (missions + money, default) / Missions only; saved in gate6.opts (OPT.msgs). Filter: msgShown() before toast(); event-class toasts, mission/stars text and direct button replies always show.
+- Open: student nearest-speaker 40-unit switching issue (iteration 7) still unfixed.

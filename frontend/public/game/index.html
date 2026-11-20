@@ -958,6 +958,7 @@
     <button class="pbtn" id="pSound">Sound effects <span class="pv" id="pvSound">On</span></button>
     <button class="pbtn" id="pMusic">Music <span class="pv" id="pvMusic">On</span></button>
     <button class="pbtn" id="pFx">Particles <span class="pv" id="pvFx">Full</span></button>
+    <button class="pbtn" id="pMsgs" data-testid="pause-messages-toggle">Messages <span class="pv" id="pvMsgs" data-testid="pause-messages-value">Important only</span></button>
     <button class="pbtn" id="pCtrl">Controls <span class="pv" id="pvCtrl">Show</span></button>
     <div id="ctrls">
       <div class="keys desk-only">
@@ -2251,7 +2252,16 @@ function hhmm(t){const m=((t%1440)+1440)%1440;
   return String(Math.floor(m/60)).padStart(2,'0')+':'+String(Math.floor(m%60)).padStart(2,'0');}
 // calm toasts: one at a time, no repeats for a while, minor lines skipped when something else is showing
 const toastQ=[], toastSeen=new Map(); let toastLast=-1e9;
+// message filter: 'all', 'imp' (missions + money) or 'mis' (missions only); direct replies to a button press always show
+const MSG_MIS=/Mission|mission|objective|Day [0-9]|failed|: go!|Lap [0-9]|Grid set|Sticker|Relic|Task done|clue|side quest|★|Lost them|Lose them|Stars cleared|security|Security/;
+const MSG_RS=/₹|&#8377;|Rs [0-9]|energy|% build|cash|Rent|rent|wallet|Card declined/;
+const MSG_UI=/^Camera:|saved|Radio on|Eye view|Tutorial|Voice (un)?assigned|playlist|songs|unlocked|is with you|Holding here|Right behind you|Leave the guard/;
+function msgShown(m,c){
+  const mode=OPT.msgs||'imp', s=String(m); if(mode==='all'||c||MSG_MIS.test(s)||MSG_UI.test(s)) return true;
+  return mode==='imp'&&MSG_RS.test(s);
+}
 function toast(m,c){
+  if(!msgShown(m,c)) return;
   const now=performance.now(), plain=String(m).replace(/<[^>]*>/g,''), key=plain.replace(/[0-9]+/g,'#');
   const imp=!!c||/₹|&#8377;|energy|% build|Day [0-9]|Mission|Radio on/.test(plain+String(m));
   const k2=imp?plain:key; if(now-(toastSeen.get(k2)||-1e9)<(imp?8000:45000)) return; toastSeen.set(k2,now);   // minor lines: no repeats for 45s; rewards only skip exact repeats
@@ -2384,7 +2394,7 @@ function showCard(html,action){
 function closeCard(){ $('veil').classList.remove('on'); S.running=true; }
 
 /* ---------- OPTIONS + SOUND (UI only; tiny WebAudio synth, no files) ---------- */
-const OPT={sound:true, music:true, lowFx:false, mute:false, vMaster:1, vMusic:1, vVoice:1, vSfx:1, voiceName:'', voiceWho:{}};
+const OPT={sound:true, music:true, lowFx:false, mute:false, vMaster:1, vMusic:1, vVoice:1, vSfx:1, voiceName:'', voiceWho:{}, msgs:'imp'};
 try{ OPT.lowFx=matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
 try{ Object.assign(OPT,JSON.parse(localStorage.getItem('gate6.opts')||'{}')); }catch(e){}
 function saveOpts(){ try{ localStorage.setItem('gate6.opts',JSON.stringify(OPT)); }catch(e){} }
@@ -2631,6 +2641,7 @@ function refreshOpts(){
   $('pvAudio').textContent=OPT.mute?'Muted':'On'; $('pvAudio').classList.toggle('on',!OPT.mute);
   $('pvMusic').textContent=OPT.music?'On':'Off'; $('pvMusic').classList.toggle('on',OPT.music);
   $('pvFx').textContent=OPT.lowFx?'Reduced':'Full'; $('pvFx').classList.toggle('on',!OPT.lowFx);
+  $('pvMsgs').textContent={all:'All messages',imp:'Important only',mis:'Missions only'}[OPT.msgs]||'Important only'; $('pvMsgs').classList.toggle('on',OPT.msgs==='all');
   $('pvCtrl').textContent=$('ctrls').classList.contains('open')?'Hide':'Show';
   $('pRestart').classList.toggle('warn',restartArm);
   $('pRestart').firstChild.textContent=restartArm?'Tap again to quit (saves first) ':'Quit to title ';
@@ -2812,6 +2823,7 @@ $('pCam').onclick=()=>{ cycleCam(); refreshOpts(); };
 $('pAudio').onclick=()=>{ sfxInit(); setMute(!OPT.mute); refreshOpts(); sfx('ui'); };
 $('pMusic').onclick=()=>{ OPT.music=!OPT.music; saveOpts(); if(OPT.music){ musicStart(); musicDuck(true); } else musicStop(); refreshOpts(); sfx('ui'); };
 $('pFx').onclick=()=>{ OPT.lowFx=!OPT.lowFx; saveOpts(); refreshOpts(); sfx('ui'); };
+$('pMsgs').onclick=()=>{ OPT.msgs={all:'imp',imp:'mis',mis:'all'}[OPT.msgs]||'all'; saveOpts(); refreshOpts(); sfx('ui'); };
 $('pCtrl').onclick=()=>{ $('ctrls').classList.toggle('open'); refreshOpts(); sfx('ui'); };
 $('pLeave').onclick=()=>{ closePause(); raceExit(null); toast('You left the race. The grandstand boos politely.'); };
 $('pShop').onclick=()=>{ closePause(); openShop(); };
