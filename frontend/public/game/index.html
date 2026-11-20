@@ -749,6 +749,18 @@
   #news img{max-width:min(620px,100%);max-height:calc(100vh - 110px);box-shadow:0 20px 60px rgba(0,0,0,.6);border-radius:2px}
   #news .nbtns{display:flex;gap:10px} #news .nbtns button+button{background:none;color:#f1ead8;border:1px solid rgba(241,234,216,.4)}
   @media (pointer:coarse){ .newsrow button,#news .nbtns button{min-height:44px} }
+  /* landscape phones: keep the side buttons clear of the action buttons */
+  @media (pointer:coarse) and (orientation:landscape) and (max-height:520px){
+    #mapwrap{display:grid;grid-template-columns:repeat(2,44px);justify-content:end;justify-items:end;gap:6px}
+    #mini{grid-column:1/-1}
+    #legend{display:none!important}
+    #pausebtn,#scorebtn,#shopbtn,#mapbtn,#helpbtn{width:44px;height:44px;border-radius:13px}
+    #btnE{right:calc(214px + var(--sar));bottom:calc(40px + var(--sab))}
+    #objwrap{left:calc(150px + var(--sal));right:calc(306px + var(--sar));bottom:calc(10px + var(--sab));transform:none;max-width:none;text-align:center;box-sizing:border-box}
+    #objwrap *{max-width:100%;box-sizing:border-box}
+    #toast{bottom:calc(150px + var(--sab))}#hint{bottom:calc(130px + var(--sab))}
+  }
+
 </style>
 </head>
 <body class="start">
