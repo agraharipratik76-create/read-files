@@ -2254,7 +2254,7 @@ const toastQ=[], toastSeen=new Map(); let toastLast=-1e9;
 function toast(m,c){
   const now=performance.now(), plain=String(m).replace(/<[^>]*>/g,''), key=plain.replace(/[0-9]+/g,'#');
   const imp=!!c||/₹|&#8377;|energy|% build|Day [0-9]|Mission|Radio on/.test(plain+String(m));
-  if(now-(toastSeen.get(key)||-1e9)<45000) return; toastSeen.set(key,now);
+  const k2=imp?plain:key; if(now-(toastSeen.get(k2)||-1e9)<(imp?8000:45000)) return; toastSeen.set(k2,now);   // minor lines: no repeats for 45s; rewards only skip exact repeats
   if(toastSeen.size>200) toastSeen.clear();
   const it={m,t:c?4:imp?3.2:2.4,c,imp};
   const cur=toasts[0];
@@ -6263,7 +6263,7 @@ function newDay(stay){
   MISSIONS.length=0; if(MX.mate) mateRelease(); mxPlanDay(ECO.day); applyDifficulty(ECO.day); spawnLoot(ECO.day); ecoNewDayStats();
   hudC.mi=-1; ECO.hudKey='';
   saveGame('day',p);
-  S.running=!(stay&&$('veil').classList.contains('on')); musicDuck(false); sfx('star');   // a mission-failed card may still be open
+  S.running=!(stay&&($('veil').classList.contains('on')||UI.sheet)); musicDuck(false); sfx('star');   // a mission-failed card may still be open
   toast('Day '+ECO.day+'. '+MISSIONS.length+' objectives. '+(stay?(nx.rent==='missed'?'Rent missed: running on fumes.':'Straight into the next day.'):nx.rent==='missed'?'You slept on a bench. 40 energy.':nx.slept?'You slept properly. Full energy.':'Beanbag sleep. 70 energy.'),'evt');
 }
 
@@ -6318,7 +6318,7 @@ function ecoRespawn(){ const c=ECO.cp||[600,2835], f=solid(c[0],c[1],PR)?nearest
 // called from startGame: Continue loads the save, New game starts Day 1 with the picked character
 function ecoBoot(){
   if(UI.useSave){ const d=loadSave(); if(d){ applySave(d); toast('Welcome back. Day '+ECO.day+' · '+hhmm(S.t)+' · '+fmtRs(S.rs)); ECO.saveInfo=d; return true; } }
-  ECO.char=CHARS[UI.pickChar]?UI.pickChar:'topper'; ECO.day=1; S.rs=6000;   // every new player starts with ₹6,000 S.en=enCap(); MISSIONS.length=0; MX.prog={best:{},tier:1,streak:0,days:0,board:[]}; mxPlanDay(1); pgSetHome(''); ECO.locker=0; ECO.bf=0; ECO.pgq={}; applyDifficulty(1); spawnLoot(1);
+  ECO.char=CHARS[UI.pickChar]?UI.pickChar:'topper'; ECO.day=1; S.rs=6000; /* every new player starts with ₹6,000 */ S.en=enCap(); MISSIONS.length=0; MX.prog={best:{},tier:1,streak:0,days:0,board:[]}; mxPlanDay(1); pgSetHome(''); ECO.locker=0; ECO.bf=0; ECO.pgq={}; applyDifficulty(1); spawnLoot(1);
   S.t=DAY_START; ecoNewDayStats(); ECO.lastRs=Math.round(S.rs); ECO.shown=S.rs; ECO.cp=[S.px,S.py];
   setTimeout(()=>saveGame('day',[S.px,S.py],true),50);
   return false;

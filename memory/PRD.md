@@ -16,3 +16,5 @@ Backlog: P1 gameplay bug fixes/perf/mobile on request; P2 new features (leaderbo
 - 2026-06: Added walk-up voice clips (VOICE_DATA + VOICE_CLIPS): spandan->Spandan Ananthula, uttam->Uttam Yamagowni, sricharan->Sricharan Vollala (user confirmed 'sai Charan'), rahul-bodkhe->Rahul Laxmikant Bodkhe.
 - 2026-06: Mission voice lines: PV_MX (spandan, uttam, sricharan, rahul-bodkhe) speak once per mission/side quest they're part of (mxRole or ACT.cur.targets), on top of walk-up line.
 - 2026-06: New players start with ₹6,000 (all characters). MIN_PER_SEC 3->1.5 (day ≈10.7 real min). Clock running out at 23:00/04:00 rolls straight into next day in place (toast summary, no end card, rent/prize/streak still applied); sleeping at PG keeps the full summary card.
+- 2026-06: Calm toasts: one visible at a time, important (evt/money/day/mission/radio) queue (max 2) or replace minor; minor lines dropped while another shows, 2.5s gap, no repeats within 45s.
+- 2026-06: FIX: comment in new-game line had disabled S.en/mxPlanDay(1)/spawnLoot(1) (restored); rollover respects open mission-failed sheet. Open: iteration_7 report (many minor).
